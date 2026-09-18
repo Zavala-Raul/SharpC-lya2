@@ -1,0 +1,11 @@
+# Visual Studio
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+*.cache
+*.log
+*.db
+*.sqlite

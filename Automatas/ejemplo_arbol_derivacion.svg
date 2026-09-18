@@ -1,0 +1,265 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1450 980" width="1450" height="980">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1329" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    
+    <linearGradient id="nt-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+
+    <linearGradient id="activo-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+
+    <linearGradient id="hoja-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#065f46" />
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="125%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+    </marker>
+
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#f87171" />
+    </marker>
+
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399" />
+    </marker>
+
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bg-grad)" />
+
+  <!-- Header -->
+  <g transform="translate(50, 40)">
+    <text x="0" y="0" font-family="Segoe UI, sans-serif" font-size="26" font-weight="bold" fill="#38bdf8">Árbol de Derivación Gramatical con EXP_P, TERM_P y POT_P Activos</text>
+    <text x="0" y="30" font-family="Segoe UI, sans-serif" font-size="16" fill="#94a3b8">Expresión de Entrada: <tspan fill="#facc15" font-weight="bold">a + b * c ^ d</tspan> | Demostración de expansión completa de operadores</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(50, 95)" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">
+    <rect x="0" y="0" width="20" height="14" rx="3" fill="url(#activo-grad)" stroke="#f87171" stroke-width="1.5" />
+    <text x="28" y="12" font-weight="bold" fill="#fca5a5">Nodos _P Activos (Desplegados con operador, NO épsilon)</text>
+
+    <rect x="440" y="0" width="20" height="14" rx="3" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="468" y="12">No Terminales Base (EXP, TERM, POT, VALOR)</text>
+
+    <rect x="800" y="0" width="20" height="14" rx="3" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="1.5" />
+    <text x="828" y="12">Terminales / Hojas (Tokens de la entrada)</text>
+
+    <rect x="1130" y="0" width="20" height="14" rx="3" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" />
+    <text x="1158" y="12">Épsilon 'e' (Fin de rama)</text>
+  </g>
+
+  <line x1="50" y1="130" x2="1400" y2="130" stroke="#334155" stroke-width="1.5" />
+
+  <!-- CONNECTOR PATHS -->
+  <!-- EXP to T1 and EXP_P -->
+  <path d="M 450 205 L 220 250" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 590 205 L 750 250" stroke="#f87171" stroke-width="2.5" marker-end="url(#arrow-red)" fill="none" />
+
+  <!-- T1 (Left child 'a') -->
+  <path d="M 180 300 L 150 345" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 220 300 L 260 345" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" marker-end="url(#arrow-gray)" fill="none" />
+  
+  <path d="M 130 395 L 100 440" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 160 395 L 190 440" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" marker-end="url(#arrow-gray)" fill="none" />
+
+  <path d="M 100 490 L 100 535" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+
+  <!-- EXP_P (Active with '+') -->
+  <path d="M 720 300 L 610 350" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+  <path d="M 800 300 L 800 350" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 880 300 L 980 350" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" marker-end="url(#arrow-gray)" fill="none" />
+
+  <!-- T2 (Inside EXP_P) -->
+  <path d="M 750 400 L 670 450" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 850 400 L 910 450" stroke="#f87171" stroke-width="2.5" marker-end="url(#arrow-red)" fill="none" />
+
+  <!-- P2 (holding 'b') -->
+  <path d="M 640 500 L 590 550" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 690 500 L 730 550" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" marker-end="url(#arrow-gray)" fill="none" />
+  <path d="M 590 600 L 590 650" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+
+  <!-- TERM_P (Active with '*') -->
+  <path d="M 870 500 L 820 555" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+  <path d="M 940 500 L 990 555" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 1000 500 L 1150 555" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" marker-end="url(#arrow-gray)" fill="none" />
+
+  <!-- P3 (holding 'c' and active POT_P) -->
+  <path d="M 950 605 L 900 660" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 1030 605 L 1090 660" stroke="#f87171" stroke-width="2.5" marker-end="url(#arrow-red)" fill="none" />
+  <path d="M 900 710 L 900 765" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+
+  <!-- POT_P (Active with '^') -->
+  <path d="M 1060 710 L 1010 770" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+  <path d="M 1150 710 L 1200 770" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+
+  <!-- P4 (holding 'd') -->
+  <path d="M 1170 820 L 1120 875" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" fill="none" />
+  <path d="M 1230 820 L 1280 875" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1.5" marker-end="url(#arrow-gray)" fill="none" />
+  <path d="M 1120 925 L 1120 965" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-green)" fill="none" />
+
+
+  <!-- NODES -->
+
+  <!-- ROOT EXP -->
+  <g transform="translate(450, 160)" filter="url(#shadow)">
+    <rect width="140" height="50" rx="8" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="2" />
+    <text x="70" y="32" font-family="Segoe UI, sans-serif" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle">EXP</text>
+  </g>
+
+  <!-- LEVEL 1: T1 & EXP_P -->
+  <g transform="translate(130, 250)" filter="url(#shadow)">
+    <rect width="130" height="50" rx="8" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="2" />
+    <text x="65" y="32" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">TERM (a)</text>
+  </g>
+
+  <g transform="translate(710, 250)" filter="url(#shadow)">
+    <rect width="200" height="52" rx="8" fill="url(#activo-grad)" stroke="#f87171" stroke-width="2.5" />
+    <text x="100" y="24" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">EXP_P [ACTIVO]</text>
+    <text x="100" y="42" font-family="Segoe UI, sans-serif" font-size="11" fill="#fecaca" text-anchor="middle">Desplegado con '+'</text>
+  </g>
+
+  <!-- T1 SUBTREE ('a') -->
+  <g transform="translate(80, 345)" filter="url(#shadow)">
+    <rect width="110" height="48" rx="7" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.8" />
+    <text x="55" y="30" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">POT</text>
+  </g>
+  <g transform="translate(210, 345)">
+    <rect width="90" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" />
+    <text x="45" y="25" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">TERM_P: e</text>
+  </g>
+
+  <g transform="translate(50, 440)" filter="url(#shadow)">
+    <rect width="100" height="48" rx="7" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.8" />
+    <text x="50" y="30" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">VALOR</text>
+  </g>
+  <g transform="translate(165, 440)">
+    <rect width="80" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" />
+    <text x="40" y="25" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">POT_P: e</text>
+  </g>
+
+  <g transform="translate(55, 535)" filter="url(#shadow)">
+    <rect width="90" height="45" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="28" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">IDV: 'a'</text>
+  </g>
+
+  <!-- EXP_P CHILDREN: '+', TERM(b*c^d), EXP_P(e) -->
+  <g transform="translate(560, 350)" filter="url(#shadow)">
+    <rect width="90" height="45" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="28" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">OPA+: '+'</text>
+  </g>
+
+  <g transform="translate(730, 350)" filter="url(#shadow)">
+    <rect width="140" height="50" rx="8" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="2" />
+    <text x="70" y="32" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">TERM (b * c ^ d)</text>
+  </g>
+
+  <g transform="translate(930, 350)">
+    <rect width="95" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" />
+    <text x="47" y="25" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">EXP_P: e</text>
+  </g>
+
+  <!-- TERM CHILDREN: POT(b) and TERM_P(active with '*') -->
+  <g transform="translate(590, 450)" filter="url(#shadow)">
+    <rect width="100" height="48" rx="7" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.8" />
+    <text x="50" y="30" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">POT (b)</text>
+  </g>
+
+  <g transform="translate(840, 450)" filter="url(#shadow)">
+    <rect width="200" height="52" rx="8" fill="url(#activo-grad)" stroke="#f87171" stroke-width="2.5" />
+    <text x="100" y="24" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">TERM_P [ACTIVO]</text>
+    <text x="100" y="42" font-family="Segoe UI, sans-serif" font-size="11" fill="#fecaca" text-anchor="middle">Desplegado con '*'</text>
+  </g>
+
+  <!-- POT(b) SUBTREE -->
+  <g transform="translate(540, 550)" filter="url(#shadow)">
+    <rect width="95" height="48" rx="7" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.8" />
+    <text x="47" y="30" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">VALOR</text>
+  </g>
+  <g transform="translate(680, 550)">
+    <rect width="80" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" />
+    <text x="40" y="25" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">POT_P: e</text>
+  </g>
+  <g transform="translate(545, 650)" filter="url(#shadow)">
+    <rect width="90" height="45" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="28" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">IDV: 'b'</text>
+  </g>
+
+  <!-- TERM_P CHILDREN: '*', POT(c^d), TERM_P(e) -->
+  <g transform="translate(775, 555)" filter="url(#shadow)">
+    <rect width="90" height="45" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="28" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">OPA*: '*'</text>
+  </g>
+
+  <g transform="translate(930, 555)" filter="url(#shadow)">
+    <rect width="130" height="50" rx="8" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="2" />
+    <text x="65" y="32" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">POT (c ^ d)</text>
+  </g>
+
+  <g transform="translate(1100, 555)">
+    <rect width="95" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" />
+    <text x="47" y="25" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">TERM_P: e</text>
+  </g>
+
+  <!-- POT(c^d) CHILDREN: VALOR(c) and POT_P(active with '^') -->
+  <g transform="translate(850, 660)" filter="url(#shadow)">
+    <rect width="95" height="48" rx="7" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.8" />
+    <text x="47" y="30" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">VALOR</text>
+  </g>
+
+  <g transform="translate(1010, 660)" filter="url(#shadow)">
+    <rect width="190" height="52" rx="8" fill="url(#activo-grad)" stroke="#f87171" stroke-width="2.5" />
+    <text x="95" y="24" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">POT_P [ACTIVO]</text>
+    <text x="95" y="42" font-family="Segoe UI, sans-serif" font-size="11" fill="#fecaca" text-anchor="middle">Desplegado con '^'</text>
+  </g>
+
+  <g transform="translate(855, 765)" filter="url(#shadow)">
+    <rect width="90" height="45" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="28" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">IDV: 'c'</text>
+  </g>
+
+  <!-- POT_P CHILDREN: '^' and POT(d) -->
+  <g transform="translate(965, 770)" filter="url(#shadow)">
+    <rect width="90" height="45" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="28" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">OPA^: '^'</text>
+  </g>
+
+  <g transform="translate(1140, 770)" filter="url(#shadow)">
+    <rect width="110" height="50" rx="8" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="2" />
+    <text x="55" y="32" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">POT (d)</text>
+  </g>
+
+  <!-- POT(d) SUBTREE -->
+  <g transform="translate(1070, 875)" filter="url(#shadow)">
+    <rect width="95" height="48" rx="7" fill="url(#nt-grad)" stroke="#60a5fa" stroke-width="1.8" />
+    <text x="47" y="30" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">VALOR</text>
+  </g>
+
+  <g transform="translate(1220, 875)">
+    <rect width="80" height="40" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-dasharray="3 3" />
+    <text x="40" y="25" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">POT_P: e</text>
+  </g>
+
+  <!-- Leaf 'd' -->
+  <g transform="translate(1075, 930)" filter="url(#shadow)">
+    <rect width="90" height="40" rx="7" fill="url(#hoja-grad)" stroke="#34d399" stroke-width="2" />
+    <text x="45" y="25" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">IDV: 'd'</text>
+  </g>
+
+</svg>

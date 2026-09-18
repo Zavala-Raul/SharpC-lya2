@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Árbol Completo GLC - Expresiones Aritméticas (GatoSabe)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .title-box h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .title-box p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background-color: var(--border);
+      color: var(--text);
+      border: 1px solid transparent;
+      padding: 0.5rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #475569;
+      border-color: var(--accent);
+    }
+
+    button.primary {
+      background-color: var(--accent);
+      color: #0f172a;
+    }
+
+    button.primary:hover {
+      background-color: var(--accent-hover);
+      color: #ffffff;
+    }
+
+    .legend {
+      background-color: rgba(30, 41, 59, 0.7);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 2rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .viewer-container {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem;
+      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+      position: relative;
+    }
+
+    #diagram-wrapper {
+      transform-origin: top center;
+      transition: transform 0.15s ease-out;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 2rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-box">
+      <h1>🌳 Árbol Completo de la Gramática de Expresiones</h1>
+      <p>Lenguaje: GatoSabe | Sección 9: Expresiones Aritméticas (GLC)</p>
+    </div>
+    <div class="toolbar">
+      <button onclick="zoomIn()">🔍 Acercar (+)</button>
+      <button onclick="zoomOut()">🔍 Alejar (-)</button>
+      <button onclick="resetZoom()">↺ 100%</button>
+      <button class="primary" onclick="descargarSVG()">📥 Descargar SVG</button>
+      <button onclick="descargarPNG()">🖼️ Descargar PNG</button>
+    </div>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item">
+      <span class="legend-color" style="background:#1e3a8a; border: 1px solid #3b82f6;"></span>
+      <span>No Terminales Principales (EXP, TERM, POT, VALOR)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background:#4338ca; border: 1px solid #6366f1;"></span>
+      <span>No Terminales Recursivos / Prima (EXP_P, TERM_P, POT_P)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background:#065f46; border: 1px solid #10b981;"></span>
+      <span>Terminales / Operandos (IDV, CNU, CAD, etc.)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background:#374151; border: 1px dashed #9ca3af;"></span>
+      <span>Épsilon 'e' (Fin de rama / cadena vacía)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background:#7c2d12; border: 1px solid #f97316;"></span>
+      <span>Paréntesis ( Retorno prioritario a EXP )</span>
+    </div>
+  </div>
+
+  <div class="viewer-container">
+    <div id="diagram-wrapper">
+      <pre class="mermaid">
+graph TD
+    classDef nt fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#ffffff;
+    classDef prima fill:#4338ca,stroke:#6366f1,stroke-width:2px,color:#ffffff;
+    classDef terminal fill:#065f46,stroke:#10b981,stroke-width:2px,color:#ffffff;
+    classDef eps fill:#374151,stroke:#9ca3af,stroke-width:1px,color:#e5e7eb,stroke-dasharray: 4 4;
+    classDef ret fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#ffffff;
+
+    EXP["EXP (Expresión General)"]:::nt
+
+    %% Nivel EXP
+    EXP --> TERM["TERM (Término)"]:::nt
+    EXP --> EXP_P["EXP_P (¿Más sumas o restas?)"]:::prima
+
+    %% Ramas de EXP_P
+    EXP_P -->|"Opción +"| EP_SUMA["OPA+ (+)  -->  TERM  -->  EXP_P"]:::prima
+    EXP_P -->|"Opción -"| EP_RESTA["OPA- (-)  -->  TERM  -->  EXP_P"]:::prima
+    EXP_P -->|"Opción e"| EP_EPS["e (Fin de sumas/restas)"]:::eps
+
+    %% Nivel TERM
+    TERM --> POT["POT (Potencia)"]:::nt
+    TERM --> TERM_P["TERM_P (¿Más mult o div?)"]:::prima
+
+    %% Ramas de TERM_P
+    TERM_P -->|"Opción *"| TP_MULT["OPA* (*)  -->  POT  -->  TERM_P"]:::prima
+    TERM_P -->|"Opción /"| TP_DIV["OPA/ (/)  -->  POT  -->  TERM_P"]:::prima
+    TERM_P -->|"Opción e"| TP_EPS["e (Fin de mult/div)"]:::eps
+
+    %% Nivel POT
+    POT --> VALOR["VALOR (Operando Base)"]:::nt
+    POT --> POT_P["POT_P (¿Exponente?)"]:::prima
+
+    %% Ramas de POT_P
+    POT_P -->|"Opción ^"| PP_POT["OPA^ (^)  -->  POT"]:::prima
+    POT_P -->|"Opción e"| PP_EPS["e (Fin de potencia)"]:::eps
+
+    %% Ramas de VALOR
+    VALOR --> V_IDV["IDV (Variable)"]:::terminal
+    VALOR --> V_CNU["CNU (Número)"]:::terminal
+    VALOR --> V_CAD["CAD (Cadena)"]:::terminal
+    VALOR --> V_CAR["CAR (Carácter)"]:::terminal
+    VALOR --> V_BOOL["PR20-PR22 (Booleanos)"]:::terminal
+    VALOR --> V_FUNC["CALL_FUNC (Función)"]:::terminal
+    VALOR --> V_PAR["CE1 '('  -->  EXP  -->  CE2 ')'"]:::retorno
+
+    %% Retorno de los paréntesis
+    V_PAR -.->|"Evalúa primero la expresión interna"| EXP
+      </pre>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      flowchart: {
+        curve: 'basis',
+        useMaxWidth: false
+      }
+    });
+
+    let currentScale = 1.0;
+    const wrapper = document.getElementById('diagram-wrapper');
+
+    function zoomIn() {
+      currentScale += 0.15;
+      wrapper.style.transform = `scale(${currentScale})`;
+    }
+
+    function zoomOut() {
+      if (currentScale > 0.3) {
+        currentScale -= 0.15;
+        wrapper.style.transform = `scale(${currentScale})`;
+      }
+    }
+
+    function resetZoom() {
+      currentScale = 1.0;
+      wrapper.style.transform = `scale(${currentScale})`;
+    }
+
+    function descargarSVG() {
+      const svgElement = document.querySelector('.mermaid svg');
+      if (!svgElement) {
+        alert('El diagrama aún se está cargando. Espera un momento.');
+        return;
+      }
+      const serializer = new XMLSerializer();
+      const svgBlob = new Blob([serializer.serializeToString(svgElement)], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'arbol_completo_glc_expresiones.svg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function descargarPNG() {
+      const svgElement = document.querySelector('.mermaid svg');
+      if (!svgElement) return;
+
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svgElement);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const scale = 2; // Alta resolución
+        canvas.width = (svgElement.viewBox.baseVal.width || svgElement.clientWidth) * scale;
+        canvas.height = (svgElement.viewBox.baseVal.height || svgElement.clientHeight) * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const pngUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = pngUrl;
+        link.download = 'arbol_completo_glc_expresiones.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
+  </script>
+</body>
+</html>
