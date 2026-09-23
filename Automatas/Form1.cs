@@ -39,7 +39,6 @@ namespace Automatas
             InitializeEditors();
         }
 
-        // -------------------- Inicialización --------------------
 
         private void InitializeEditors()
         {
@@ -115,7 +114,6 @@ namespace Automatas
             scintilla2.Styles[10].ForeColor = Color.Black;
         }
 
-        // -------------------- Análisis Sintáctico --------------------
 
         private void EjecutarAnalisisSintactico()
         {
@@ -129,7 +127,6 @@ namespace Automatas
             verificador.Verificar(tokensSintactico);
             erroresTipos.AddRange(verificador.Errores);
         }
-        // -------------------- Resto de métodos de tu clase original --------------------
 
         private void ReAnalizarTodo()
         {
@@ -311,7 +308,6 @@ namespace Automatas
         {
             int idxAsig = -1;
 
-            // Buscar específicamente el token ASIG
             foreach (var tk in tokensLinea)
             {
                 string resultado = lexico.AnalizarCadena(tk.token)
@@ -325,17 +321,14 @@ namespace Automatas
                 }
             }
 
-            // Si no existe asignación real
             if (idxAsig == -1)
                 return "";
 
-            // Buscar fin de instrucción
             int idxPuntoComa = lineaTexto.IndexOf(';', idxAsig);
 
             if (idxPuntoComa == -1)
                 idxPuntoComa = lineaTexto.Length;
 
-            // Obtener texto después del '='
             string valor = lineaTexto.Substring(
                 idxAsig + 1,
                 idxPuntoComa - idxAsig - 1);
@@ -411,7 +404,6 @@ namespace Automatas
                     int lineaToken = tk.linea;
                     int columna = tk.columna;
                     string lexema = tk.token.Trim();
-                    bool esDestinoAsignacion = (tIdx + 1 < tokens.Count) && (tokens[tIdx + 1].token.Trim() == "=");
 
                     if (lexema.StartsWith("//"))
                     {
@@ -432,31 +424,23 @@ namespace Automatas
                             continue;
                         }
 
-                        // =========================================================
-                        // --- INICIO DE NORMALIZACIÓN PARA TABLA SINTÁCTICA ---
                         string tokenSintactico = resultadoNormalizado;
 
-                        // 1. Quitar textos extra (ej. "CN Entera" -> "CN")
                         if (tokenSintactico.Contains(" "))
                             tokenSintactico = tokenSintactico.Split(' ')[0];
 
-                        // 2. Ajustar numéricos genéricos según tu GLC
                         if (tokenSintactico == "CN")
                             tokenSintactico = "CNU";
 
-                        // 3. LIMPIEZA CRÍTICA: Quitar números de tabla de símbolos (ej. "IDV1" -> "IDV")
                         if (tokenSintactico.StartsWith("IDV"))
                             tokenSintactico = "IDV";
                         if (tokenSintactico.StartsWith("IDF"))
                             tokenSintactico = "IDF";
 
-                        // 4. Agregar a la lista sintáctica (ignorando comentarios)
                         if (!tokenSintactico.StartsWith("COM"))
                         {
                             tokensSintactico.Add((tokenSintactico, lexema, lineaToken));
                         }
-                        // --- FIN DE NORMALIZACIÓN ---
-                        // =========================================================
 
                         if (lexema.Equals("FUNC", StringComparison.OrdinalIgnoreCase))
                         {
@@ -483,19 +467,25 @@ namespace Automatas
 
                         if (esDeclaracionFuncion && resultadoNormalizado.StartsWith("IDV"))
                         {
+
+                            string tipoParam = string.IsNullOrEmpty(tipoActual) ? "?" : tipoActual;
+
                             if (!string.IsNullOrEmpty(nombreFuncionActual))
                             {
-                                string tipoParam = string.IsNullOrEmpty(tipoActual) ? "?" : tipoActual;
                                 AgregarParametroFuncion(nombreFuncionActual, tipoParam, lexema);
                             }
-                            AgregarTokenATabla(resultadoNormalizado, estiloToken);
+
+                            int num = RegistrarIdentificador(lexema, tipoParam, "");
+
+                            AgregarTokenATabla(resultadoNormalizado + num.ToString(), estiloToken);
+
+                            tipoActual = "";
                             continue;
                         }
 
                         if (resultadoNormalizado.StartsWith("IDV"))
                         {
                             int num;
-                            // 1. Declaración de variable
                             if (!string.IsNullOrEmpty(tipoActual) && !dentroDeFuncion)
                             {
                                 num = RegistrarIdentificador(lexema, tipoActual, "");
@@ -503,7 +493,6 @@ namespace Automatas
                             }
                             else
                             {
-                                // 2. Uso o reasignación de variable (el valor se valida y actualiza en VerificadorTipos)
                                 num = tablaSimbolos.ContainsKey(lexema) ? tablaSimbolos[lexema].Numero : RegistrarIdentificador(lexema, "", "");
                             }
 

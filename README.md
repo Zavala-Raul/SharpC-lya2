@@ -1,3 +1,9 @@
+## Documentación
+
+- [Análisis semántico: jerarquía de operaciones, verificación de tipos y pilas](docs/analisis-semantico.md). Guía con ejemplos paso a paso, referencias al código y un guion breve para exponer.
+
+## Ejemplos del lenguaje
+
 1. Declaraciones
 ~~~
 INI {

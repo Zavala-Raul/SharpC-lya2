@@ -125,8 +125,8 @@ namespace Automatas
                 {
                     int linea = tk.Linea;
                     i += 2; // Saltar POR, (
-                    var tokensPara = ExtraerTokensHastaParentesisCierre(tokens, ref i);
-                    VerificarBuclePara(tokensPara, linea);
+                    var tokensPor = ExtraerTokensHastaParentesisCierre(tokens, ref i);
+                    VerificarBuclePor(tokensPor, linea);
                     continue;
                 }
 
@@ -134,12 +134,12 @@ namespace Automatas
             }
         }
 
-        private void VerificarBuclePara(List<(string Tipo, string Valor, int Linea)> tokensPara, int linea)
+        private void VerificarBuclePor(List<(string Tipo, string Valor, int Linea)> tokensPor, int linea)
         {
             var partes = new List<List<(string Tipo, string Valor, int Linea)>>();
             var actual = new List<(string Tipo, string Valor, int Linea)>();
 
-            foreach (var t in tokensPara)
+            foreach (var t in tokensPor)
             {
                 if (t.Tipo == "CE8" || t.Valor == ";")
                 {

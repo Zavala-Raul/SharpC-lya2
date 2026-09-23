@@ -17,12 +17,12 @@ namespace Automatas
 
             AgregarBloquePrincipal(tabla, firstInstruccion);
             AgregarInstrucciones(tabla);
-            AgregarDeclaracionesYAsignaciones(tabla);
+            AgregarDeclaracionesYAsignaciones(tabla, firstInstruccion);
             AgregarEstructurasDeControl(tabla, firstInstruccion);
             AgregarEntradaSalidaYGraficas(tabla);
             AgregarFunciones(tabla);
             AgregarCondiciones(tabla, firstCondicion);
-            AgregarExpresiones(tabla);
+            AgregarExpresiones(tabla, firstInstruccion);
 
             return tabla.Tabla;
         }
@@ -34,7 +34,7 @@ namespace Automatas
 
             tabla.Agregar("S", firstCondicion, "COND");
             AgregarCondiciones(tabla, firstCondicion);
-            AgregarExpresiones(tabla);
+            AgregarExpresiones(tabla, CrearFirstInstruccion());
             AgregarFuncionesEnExpresiones(tabla);
 
             return tabla.Tabla;
@@ -84,13 +84,16 @@ namespace Automatas
             tabla.Agregar("IN", "IDF", "IN22");
         }
 
-        private static void AgregarDeclaracionesYAsignaciones(TablaLl1Builder tabla)
+        private static void AgregarDeclaracionesYAsignaciones(TablaLl1Builder tabla, List<string> firstInstruccion)
         {
             tabla.Agregar("IN02", TiposVariable, "TIPO_VAR", "IDV", "ASIG_OPC", "CE8");
             tabla.Agregar("TIPO_VAR", TiposVariable, token => new[] { token });
 
             tabla.Agregar("ASIG_OPC", "ASIG", "ASIG", "EXP");
             tabla.Agregar("ASIG_OPC", "CE8", "e");
+            tabla.Agregar("ASIG_OPC", "CE4", "e");
+            tabla.Agregar("ASIG_OPC", "EOF", "e");
+            tabla.Agregar("ASIG_OPC", firstInstruccion, "e");
 
             tabla.Agregar("IN03", "IDV", "IDV", "ASIG", "EXP_IO", "CE8");
             tabla.Agregar("EXP_IO", "PR4", "PR4", "CE1", "CE2");
@@ -191,7 +194,7 @@ namespace Automatas
             tabla.Agregar("REL_OPC", "OPL2", "e");
         }
 
-        private static void AgregarExpresiones(TablaLl1Builder tabla)
+        private static void AgregarExpresiones(TablaLl1Builder tabla, List<string> firstInstruccion)
         {
             tabla.Agregar("EXP", FirstExpresion, "TERM", "EXP_P");
 
@@ -199,10 +202,13 @@ namespace Automatas
             tabla.Agregar("EXP_P", "OPA-", "OPA-", "TERM", "EXP_P");
             tabla.Agregar("EXP_P", "CE2", "e");
             tabla.Agregar("EXP_P", "CE8", "e");
+            tabla.Agregar("EXP_P", "CE4", "e");
+            tabla.Agregar("EXP_P", "EOF", "e");
             tabla.Agregar("EXP_P", "CE7", "e");
             tabla.Agregar("EXP_P", OperadoresRelacionales, "e");
             tabla.Agregar("EXP_P", "OPL1", "e");
             tabla.Agregar("EXP_P", "OPL2", "e");
+            tabla.Agregar("EXP_P", firstInstruccion, "e");
 
             tabla.Agregar("TERM", FirstExpresion, "POT", "TERM_P");
             tabla.Agregar("TERM_P", "OPA*", "OPA*", "POT", "TERM_P");
@@ -211,10 +217,13 @@ namespace Automatas
             tabla.Agregar("TERM_P", "OPA-", "e");
             tabla.Agregar("TERM_P", "CE2", "e");
             tabla.Agregar("TERM_P", "CE8", "e");
+            tabla.Agregar("TERM_P", "CE4", "e");
+            tabla.Agregar("TERM_P", "EOF", "e");
             tabla.Agregar("TERM_P", "CE7", "e");
             tabla.Agregar("TERM_P", OperadoresRelacionales, "e");
             tabla.Agregar("TERM_P", "OPL1", "e");
             tabla.Agregar("TERM_P", "OPL2", "e");
+            tabla.Agregar("TERM_P", firstInstruccion, "e");
 
             tabla.Agregar("POT", FirstExpresion, "VALOR", "POT_P");
             tabla.Agregar("POT_P", "OPA^", "OPA^", "POT");
@@ -224,10 +233,13 @@ namespace Automatas
             tabla.Agregar("POT_P", "OPA-", "e");
             tabla.Agregar("POT_P", "CE2", "e");
             tabla.Agregar("POT_P", "CE8", "e");
+            tabla.Agregar("POT_P", "CE4", "e");
+            tabla.Agregar("POT_P", "EOF", "e");
             tabla.Agregar("POT_P", "CE7", "e");
             tabla.Agregar("POT_P", OperadoresRelacionales, "e");
             tabla.Agregar("POT_P", "OPL1", "e");
             tabla.Agregar("POT_P", "OPL2", "e");
+            tabla.Agregar("POT_P", firstInstruccion, "e");
 
             tabla.Agregar("VALOR", "IDV", "IDV");
             tabla.Agregar("VALOR", "CNU", "CNU");
