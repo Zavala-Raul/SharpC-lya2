@@ -9,3 +9,6 @@ packages/
 *.log
 *.db
 *.sqlite
+
+# Documentación de uso local
+/README.md
