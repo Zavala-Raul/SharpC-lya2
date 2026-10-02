@@ -45,6 +45,15 @@ namespace Automatas
         public void Verificar(List<(string Tipo, string Valor, int Linea)> tokens)
         {
             Errores.Clear();
+
+            // También revisa literales en impresión, retornos y argumentos que este
+            // recorrido todavía no verifica por completo. No evalúa las operaciones.
+            foreach (var token in tokens)
+            {
+                if (token.Tipo == "CNU")
+                    ObtenerTipoOperando(token.Tipo, token.Valor, token.Linea);
+            }
+
             int i = 0;
 
             while (i < tokens.Count)
@@ -155,40 +164,49 @@ namespace Automatas
 
             if (partes.Count >= 2)
             {
-                // Parte 0: Inicialización (ej: ENT i = 0 o i = 0)
-                if (partes[0].Count >= 3)
-                {
-                    int idx = 0;
-                    if (EsTipoDato(partes[0][0].Tipo))
-                    {
-                        string tipoD = ObtenerTipoDato(partes[0][0].Tipo, partes[0][0].Valor);
-                        string nom = partes[0][1].Valor;
-                        tiposVariables[nom] = tipoD;
-                        idx = 2;
-                    }
-                    if (idx + 1 < partes[0].Count && partes[0][idx].Tipo == "ASIG")
-                    {
-                        string nom = idx == 2 ? partes[0][1].Valor : partes[0][0].Valor;
-                        string tipoV = ObtenerTipoVariable(nom);
-                        var expInit = partes[0].GetRange(idx + 1, partes[0].Count - (idx + 1));
-                        if (tipoV != null)
-                            VerificarAsignacion(nom, tipoV, expInit, linea);
-                    }
-                }
+                // Parte 0: Inicialización, con o sin declaración.
+                VerificarAsignacionPor(partes[0]);
 
                 // Parte 1: Condición (debe evaluar a BOOL)
-                VerificarCondicion(partes[1], linea);
+                VerificarCondicion(partes[1], partes[1].Count > 0 ? partes[1][0].Linea : linea);
 
                 // Parte 2: Incremento (ej: i = i + 1)
-                if (partes.Count >= 3 && partes[2].Count >= 3 && partes[2][1].Tipo == "ASIG")
-                {
-                    string nom = partes[2][0].Valor;
-                    string tipoV = ObtenerTipoVariable(nom);
-                    var expInc = partes[2].GetRange(2, partes[2].Count - 2);
-                    if (tipoV != null)
-                        VerificarAsignacion(nom, tipoV, expInc, linea);
-                }
+                if (partes.Count >= 3)
+                    VerificarAsignacionPor(partes[2]);
             }
+        }
+
+        private void VerificarAsignacionPor(List<(string Tipo, string Valor, int Linea)> tokens)
+        {
+            if (tokens.Count < 3) return;
+
+            // ENT vI = ...: variable en 1 y '=' en 2.
+            //     vI = ...: variable en 0 y '=' en 1.
+            bool esDeclaracion = EsTipoDato(tokens[0].Tipo);
+            int indiceVariable = esDeclaracion ? 1 : 0;
+            int indiceAsignacion = indiceVariable + 1;
+            if (indiceAsignacion + 1 >= tokens.Count || tokens[indiceVariable].Tipo != "IDV" ||
+                tokens[indiceAsignacion].Tipo != "ASIG") return;
+
+            var variable = tokens[indiceVariable];
+            if (esDeclaracion)
+            {
+                string tipoDecl = ObtenerTipoDato(tokens[0].Tipo, tokens[0].Valor);
+                tiposVariables[variable.Valor] = tipoDecl;
+                if (tablaSimbolos.ContainsKey(variable.Valor) && string.IsNullOrEmpty(tablaSimbolos[variable.Valor].Tipo))
+                    tablaSimbolos[variable.Valor].Tipo = tipoDecl;
+            }
+
+            string tipoVariable = ObtenerTipoVariable(variable.Valor);
+            if (tipoVariable == null)
+            {
+                Errores.Add((variable.Linea, $"ERROR DE TIPO: La variable '{variable.Valor}' no ha sido declarada."));
+                return;
+            }
+
+            int inicioExpresion = indiceAsignacion + 1;
+            var expresion = tokens.GetRange(inicioExpresion, tokens.Count - inicioExpresion);
+            VerificarAsignacion(variable.Valor, tipoVariable, expresion, variable.Linea);
         }
 
         public void VerificarAsignacion(string nombreVar, string tipoVar, List<(string Tipo, string Valor, int Linea)> tokensExp, int linea)
@@ -283,8 +301,11 @@ namespace Automatas
                 else if (EsOperador(tk.Tipo, tk.Valor))
                 {
                     string op = NormalizarOperador(tk.Tipo, tk.Valor);
+                    // La potencia es asociativa a la derecha: a ^ b ^ c = a ^ (b ^ c).
+                    // A igual precedencia, los demás operadores se aplican de izquierda a derecha.
                     while (pilaOps.Count > 0 && pilaOps.Peek() != "(" &&
-                           ObtenerPrecedencia(pilaOps.Peek()) >= ObtenerPrecedencia(op))
+                           (ObtenerPrecedencia(pilaOps.Peek()) > ObtenerPrecedencia(op) ||
+                            (ObtenerPrecedencia(pilaOps.Peek()) == ObtenerPrecedencia(op) && op != "^")))
                     {
                         AplicarOperador(pilaTipos, pilaOps, linea);
                     }
@@ -389,7 +410,17 @@ namespace Automatas
         public string ObtenerTipoOperando(string tipoToken, string lexema, int linea)
         {
             if (tipoToken == "CNU")
-                return lexema.Contains(".") ? "DEC" : "ENT";
+            {
+                if (CatalogoTipos.EsLiteralDecimal(lexema)) return "DEC";
+                if (CatalogoTipos.EsLiteralEnteroEnRango(lexema)) return "ENT";
+
+                string mensaje = CatalogoTipos.MensajeEnteroFueraDeRango(lexema);
+                // La pasada previa y la inferencia pueden encontrar el mismo literal.
+                // Un mismo literal inválido en la misma línea se informa una sola vez.
+                if (!Errores.Any(e => e.Linea == linea && e.Mensaje == mensaje))
+                    Errores.Add((linea, mensaje));
+                return "ERROR";
+            }
 
             if (tipoToken == "CAD") return "TXT";
             if (tipoToken == "CAR") return "CAR";
@@ -509,18 +540,19 @@ namespace Automatas
         {
             switch (op)
             {
-                case "!": return 6;
-                case "^": return 5;
+                case "^": return 6;
                 case "*":
-                case "/": return 4;
+                case "/": return 5;
                 case "+":
-                case "-": return 3;
+                case "-": return 4;
                 case "==":
                 case "<>":
                 case "<":
                 case ">":
                 case "<=":
-                case ">=": return 2;
+                case ">=": return 3;
+                // COND_NOT -> ! COND_NOT: la comparación se completa antes de negarla.
+                case "!": return 2;
                 case "&&": return 1;
                 case "||": return 0;
                 default: return -1;

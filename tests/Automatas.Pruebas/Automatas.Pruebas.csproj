@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Automatas/Ambito.cs" Link="Produccion/Ambito.cs" />
+    <Compile Include="../../Automatas/AnalizadorSintacticoLl1.cs" Link="Produccion/AnalizadorSintacticoLl1.cs" />
+    <Compile Include="../../Automatas/CatalogoTipos.cs" Link="Produccion/CatalogoTipos.cs" />
+    <Compile Include="../../Automatas/TablaSintacticaSharpC.cs" Link="Produccion/TablaSintacticaSharpC.cs" />
+    <Compile Include="../../Automatas/TokenizadorFuenteSharpC.cs" Link="Produccion/TokenizadorFuenteSharpC.cs" />
+    <Compile Include="../../Automatas/VerificadorTipos.cs" Link="Produccion/VerificadorTipos.cs" />
+    <Compile Include="../../Automatas/Simbolo.cs" Link="Produccion/Simbolo.cs" />
+    <Compile Include="../../Automatas/Funcion.cs" Link="Produccion/Funcion.cs" />
+  </ItemGroup>
+</Project>

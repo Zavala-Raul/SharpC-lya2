@@ -10,7 +10,7 @@ namespace Automatas
 
         private static readonly HashSet<string> TokensInicioInstruccion = new HashSet<string>
         {
-            // Tipos de dato 
+            // Tipos de dato
             "PR23", "PR24", "PR25", "PR26", "PR27",
             "PR1",  // INI
             "PR2",  // FUNC
@@ -97,7 +97,7 @@ namespace Automatas
             {
                 errores.Add((tokenActual.Linea,
                     $"TOKEN EXTRA: '{tokenActual.Valor}' no esperado antes de {TraducirToken(terminalEsperado)}"));
-                indice++; 
+                indice++;
                 return;
             }
 
@@ -277,6 +277,10 @@ namespace Automatas
 
         private string ObtenerAyudaSintaxis(string noTerminal)
         {
+            // Los niveles aritméticos de condiciones comparten los mismos diagnósticos.
+            if (noTerminal.EndsWith("_COND"))
+                noTerminal = noTerminal.Substring(0, noTerminal.Length - "_COND".Length);
+
             switch (noTerminal)
             {
                 case "S": return "El programa debe comenzar con INI { ... }";

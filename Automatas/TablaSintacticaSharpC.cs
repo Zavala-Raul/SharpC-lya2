@@ -174,82 +174,68 @@ namespace Automatas
             tabla.Agregar("COND_OR_P", "OPL2", "OPL2", "COND_AND", "COND_OR_P");
             tabla.Agregar("COND_OR_P", "CE2", "e");
             tabla.Agregar("COND_OR_P", "CE8", "e");
+            tabla.Agregar("COND_OR_P", "EOF", "e");
 
             tabla.Agregar("COND_AND", firstCondicion, "COND_NOT", "COND_AND_P");
             tabla.Agregar("COND_AND_P", "OPL1", "OPL1", "COND_NOT", "COND_AND_P");
             tabla.Agregar("COND_AND_P", "OPL2", "e");
             tabla.Agregar("COND_AND_P", "CE2", "e");
             tabla.Agregar("COND_AND_P", "CE8", "e");
+            tabla.Agregar("COND_AND_P", "EOF", "e");
 
             tabla.Agregar("COND_NOT", "OPL3", "OPL3", "COND_NOT");
             tabla.Agregar("COND_NOT", FirstExpresion, "COND_REL");
 
-            tabla.Agregar("COND_REL", FirstExpresion.Where(t => t != "CE1"), "EXP", "REL_OPC");
-            tabla.Agregar("COND_REL", "CE1", "CE1", "COND", "CE2");
+            // '(' inicia un valor agrupado, no obliga a terminar toda la comparación.
+            tabla.Agregar("COND_REL", FirstExpresion, "EXP_COND", "REL_OPC");
 
-            tabla.Agregar("REL_OPC", OperadoresRelacionales, token => new[] { token, "EXP" });
+            tabla.Agregar("REL_OPC", OperadoresRelacionales, token => new[] { token, "EXP_COND" });
             tabla.Agregar("REL_OPC", "CE2", "e");
             tabla.Agregar("REL_OPC", "CE8", "e");
             tabla.Agregar("REL_OPC", "OPL1", "e");
             tabla.Agregar("REL_OPC", "OPL2", "e");
+            tabla.Agregar("REL_OPC", "EOF", "e");
         }
 
         private static void AgregarExpresiones(TablaLl1Builder tabla, List<string> firstInstruccion)
         {
-            tabla.Agregar("EXP", FirstExpresion, "TERM", "EXP_P");
+            AgregarNivelesAritmeticos(tabla, firstInstruccion, "", "EXP");
+            // En condiciones, un paréntesis puede contener aritmética o una condición completa.
+            AgregarNivelesAritmeticos(tabla, firstInstruccion, "_COND", "COND");
+        }
 
-            tabla.Agregar("EXP_P", "OPA+", "OPA+", "TERM", "EXP_P");
-            tabla.Agregar("EXP_P", "OPA-", "OPA-", "TERM", "EXP_P");
-            tabla.Agregar("EXP_P", "CE2", "e");
-            tabla.Agregar("EXP_P", "CE8", "e");
-            tabla.Agregar("EXP_P", "CE4", "e");
-            tabla.Agregar("EXP_P", "EOF", "e");
-            tabla.Agregar("EXP_P", "CE7", "e");
-            tabla.Agregar("EXP_P", OperadoresRelacionales, "e");
-            tabla.Agregar("EXP_P", "OPL1", "e");
-            tabla.Agregar("EXP_P", "OPL2", "e");
-            tabla.Agregar("EXP_P", firstInstruccion, "e");
+        private static void AgregarNivelesAritmeticos(TablaLl1Builder tabla,
+            List<string> firstInstruccion, string sufijo, string expresionAgrupada)
+        {
+            string exp = "EXP" + sufijo;
+            string expP = "EXP_P" + sufijo;
+            string term = "TERM" + sufijo;
+            string termP = "TERM_P" + sufijo;
+            string pot = "POT" + sufijo;
+            string potP = "POT_P" + sufijo;
+            string valor = "VALOR" + sufijo;
 
-            tabla.Agregar("TERM", FirstExpresion, "POT", "TERM_P");
-            tabla.Agregar("TERM_P", "OPA*", "OPA*", "POT", "TERM_P");
-            tabla.Agregar("TERM_P", "OPA/", "OPA/", "POT", "TERM_P");
-            tabla.Agregar("TERM_P", "OPA+", "e");
-            tabla.Agregar("TERM_P", "OPA-", "e");
-            tabla.Agregar("TERM_P", "CE2", "e");
-            tabla.Agregar("TERM_P", "CE8", "e");
-            tabla.Agregar("TERM_P", "CE4", "e");
-            tabla.Agregar("TERM_P", "EOF", "e");
-            tabla.Agregar("TERM_P", "CE7", "e");
-            tabla.Agregar("TERM_P", OperadoresRelacionales, "e");
-            tabla.Agregar("TERM_P", "OPL1", "e");
-            tabla.Agregar("TERM_P", "OPL2", "e");
-            tabla.Agregar("TERM_P", firstInstruccion, "e");
+            var finExpresion = new[] { "CE2", "CE8", "CE4", "EOF", "CE7", "OPL1", "OPL2" }
+                .Concat(OperadoresRelacionales).Concat(firstInstruccion);
 
-            tabla.Agregar("POT", FirstExpresion, "VALOR", "POT_P");
-            tabla.Agregar("POT_P", "OPA^", "OPA^", "POT");
-            tabla.Agregar("POT_P", "OPA*", "e");
-            tabla.Agregar("POT_P", "OPA/", "e");
-            tabla.Agregar("POT_P", "OPA+", "e");
-            tabla.Agregar("POT_P", "OPA-", "e");
-            tabla.Agregar("POT_P", "CE2", "e");
-            tabla.Agregar("POT_P", "CE8", "e");
-            tabla.Agregar("POT_P", "CE4", "e");
-            tabla.Agregar("POT_P", "EOF", "e");
-            tabla.Agregar("POT_P", "CE7", "e");
-            tabla.Agregar("POT_P", OperadoresRelacionales, "e");
-            tabla.Agregar("POT_P", "OPL1", "e");
-            tabla.Agregar("POT_P", "OPL2", "e");
-            tabla.Agregar("POT_P", firstInstruccion, "e");
+            tabla.Agregar(exp, FirstExpresion, term, expP);
+            tabla.Agregar(expP, "OPA+", "OPA+", term, expP);
+            tabla.Agregar(expP, "OPA-", "OPA-", term, expP);
+            tabla.Agregar(expP, finExpresion, "e");
 
-            tabla.Agregar("VALOR", "IDV", "IDV");
-            tabla.Agregar("VALOR", "CNU", "CNU");
-            tabla.Agregar("VALOR", "CAD", "CAD");
-            tabla.Agregar("VALOR", "CAR", "CAR");
-            tabla.Agregar("VALOR", "PR20", "PR20");
-            tabla.Agregar("VALOR", "PR21", "PR21");
-            tabla.Agregar("VALOR", "PR22", "PR22");
-            tabla.Agregar("VALOR", "IDF", "CALL_FUNC");
-            tabla.Agregar("VALOR", "CE1", "CE1", "EXP", "CE2");
+            tabla.Agregar(term, FirstExpresion, pot, termP);
+            tabla.Agregar(termP, "OPA*", "OPA*", pot, termP);
+            tabla.Agregar(termP, "OPA/", "OPA/", pot, termP);
+            tabla.Agregar(termP, finExpresion.Concat(new[] { "OPA+", "OPA-" }), "e");
+
+            tabla.Agregar(pot, FirstExpresion, valor, potP);
+            tabla.Agregar(potP, "OPA^", "OPA^", pot);
+            tabla.Agregar(potP, finExpresion.Concat(new[] { "OPA+", "OPA-", "OPA*", "OPA/" }), "e");
+
+            tabla.Agregar(valor, new[] { "IDV", "CNU", "CAD", "CAR", "PR20", "PR21", "PR22" },
+                token => new[] { token });
+            tabla.Agregar(valor, "IDF", "CALL_FUNC");
+            tabla.Agregar(valor, "CE1", "CE1", expresionAgrupada, "CE2");
         }
 
         private class TablaLl1Builder

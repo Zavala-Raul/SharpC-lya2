@@ -98,7 +98,7 @@ Los resultados matemáticos serían `14`, `20` y `50`, respectivamente. Sirven p
 
 La producción `POT_P → ^ POT` hace que la gramática agrupe `2 ^ 3 ^ 2` como `2 ^ (3 ^ 2)`, hacia la derecha.
 
-Hay una diferencia en la implementación semántica: `EvaluarTipoExpresion` aplica los operadores pendientes cuya precedencia es **mayor o igual** que la del nuevo operador. Por eso procesa las potencias encadenadas hacia la izquierda. En una cadena formada únicamente por números, esto no cambia el tipo inferido (`ENT` o `DEC`), pero sí cambiaría el valor si ese algoritmo se usara para ejecutar las operaciones. Es importante no afirmar que ambas etapas coinciden en la asociatividad de `^`.
+La implementación semántica respeta esa misma agrupación: `EvaluarTipoExpresion` aplica los operadores pendientes de mayor precedencia y los de igual precedencia solo cuando el nuevo operador no es `^`. Así, al llegar una segunda potencia, la primera queda pendiente y se comprueba primero la situada a la derecha. Suma, resta, multiplicación y división se procesan de izquierda a derecha a igual prioridad. En una cadena formada únicamente por números, la asociatividad de las potencias no cambia el tipo inferido (`ENT` o `DEC`), pero mantener la misma agrupación hace coherentes ambas etapas.
 
 ## 3. Verificación de tipos
 
@@ -123,7 +123,7 @@ El método `Verificar` recorre los tokens y reconoce casos concretos:
 2. **Declaración sin asignación:** registra el tipo de la variable.
 3. **Reasignación:** consulta el tipo de la variable y comprueba el nuevo valor.
 4. **Condiciones de `SI`, `MIENT` y `HASTA`:** comprueba que el tipo resultante sea `BOOL`.
-5. **Bucle `POR`:** delega en `VerificarBuclePor`, que separa inicialización, condición e incremento e intenta comprobar esas partes.
+5. **Bucle `POR`:** delega en `VerificarBuclePor`, que separa inicialización, condición e incremento. `VerificarAsignacionPor` comprueba tanto la inicialización (con o sin declaración) como el incremento; `VerificarCondicion` comprueba la condición.
 
 Para una asignación, la secuencia principal es:
 
@@ -142,8 +142,9 @@ VerificarAsignacion
 
 | Operando | Tipo obtenido |
 | --- | --- |
-| Número sin punto, como `12` | `ENT` |
-| Número con punto, como `12.5` | `DEC` |
+| Número sin punto ni exponente, como `12`, dentro del rango de 32 bits con signo | `ENT` |
+| Literal entero menor que -2147483648 o mayor que 2147483647 | `ERROR` y diagnóstico de rango. |
+| Número con punto o exponente, como `12.5` o `1E3` | `DEC` |
 | Cadena, como `"hola"` | `TXT` |
 | Carácter, como `'A'` | `CAR` |
 | Token de literal booleano | `BOOL` |
@@ -151,6 +152,21 @@ VerificarAsignacion
 | Función conocida | Su tipo de retorno. |
 
 Una variable o función que no se encuentra produce un error. `ERROR` indica que se detectó un problema; `DESCONOCIDO` indica que no se logró identificar un tipo. No son tipos declarables del lenguaje.
+
+`CatalogoTipos.cs` define los tamaños simbólicos y valida los literales `ENT` mediante `int.TryParse` con cultura invariante. `Verificar` revisa previamente todos los tokens numéricos, incluidos los presentes en impresión, retornos y argumentos. La inferencia también realiza esta validación cuando se invoca directamente, sin duplicar el diagnóstico del mismo literal en la misma línea. Esto no evalúa resultados de operaciones ni valida aún el rango de `DEC`. El avance hacia ámbitos y memoria está en el [plan incremental](plan-semantica-incremental.md).
+
+### 3.3.1 Modelo de ámbitos
+
+`Ambito.cs` representa la cadena principal/hijos y las reglas de visibilidad, pero todavía no recibe los tokens del programa:
+
+- Cada bloque o función crea un ámbito hijo del principal, que corresponde a `INI`.
+- Una declaración se encuentra desde su línea hasta el final de su ámbito. `Simbolo.LineaDeclaracion` fija ese punto.
+- La declaración más cercana gana aunque no sea visible todavía. Así, usar una variable antes de declararla produce un error y no se resuelve con el ámbito padre.
+- No hay sombreado: un hijo no puede repetir un nombre de un padre. Los hermanos sí pueden reutilizar un nombre.
+- `Simbolo.IgnorarLineaDeclaracion` permite que las funciones se invoquen antes de aparecer en el archivo.
+- `Simbolo.Clase` distingue `VARIABLE`, `FUNCION` y `PARAMETRO`.
+
+`Simbolo.Ambito` es una referencia al ámbito propietario. La tabla que usa `VerificadorTipos` continúa siendo un diccionario por nombre, por lo que estas reglas todavía no se aplican a los programas analizados.
 
 ### 3.4. Reglas de las operaciones
 
@@ -233,7 +249,7 @@ El algoritmo es similar al de dos pilas usado para procesar expresiones infijas,
 1. Si encuentra un operando, obtiene su tipo y lo apila en `pilaTipos`.
 2. Si encuentra `(`, lo apila en `pilaOps` como barrera de agrupación.
 3. Si encuentra `)`, aplica los operadores pendientes hasta llegar a `(` y retira ese paréntesis.
-4. Si encuentra un operador binario, aplica primero los pendientes de mayor o igual prioridad y luego apila el nuevo.
+4. Si encuentra un operador binario, aplica primero los pendientes de mayor prioridad. También aplica los de igual prioridad, excepto cuando el nuevo operador es `^`, para respetar su asociatividad a la derecha. Luego apila el nuevo operador.
 5. `!` tiene tratamiento especial: se apila y, al aplicarse, consume un solo tipo.
 6. Al terminar la expresión, aplica los operadores restantes y devuelve el tipo de la cima.
 
@@ -277,15 +293,19 @@ Con `(2 + 3) * 4.5`, al leer `)` se combina primero `ENT + ENT → ENT`. Despué
 
 | Operador interno | Prioridad |
 | --- | --- |
-| `!` | 6 |
-| `^` | 5 |
-| `*`, `/` | 4 |
-| `+`, `-` | 3 |
-| `==`, `<>`, `<`, `>`, `<=`, `>=` | 2 |
+| `^` | 6 |
+| `*`, `/` | 5 |
+| `+`, `-` | 4 |
+| `==`, `<>`, `<`, `>`, `<=`, `>=` | 3 |
+| `!` | 2 |
 | `&&` | 1 |
 | `||` | 0 |
 
 Los paréntesis se procesan mediante reglas especiales, no mediante un número en esta tabla. La jerarquía aritmética se representa, por tanto, en dos lugares: en las producciones del sintáctico y en las prioridades del verificador.
+
+La negación tiene menor prioridad que las comparaciones y mayor que los operadores lógicos binarios, de acuerdo con la gramática de este proyecto. Por eso `!2 < 3` significa `!(2 < 3)`, mientras que `(!2) < 3` exige negar el entero y produce un error. Esta es una decisión del lenguaje del proyecto; no debe confundirse con la precedencia de `!` en C#.
+
+Dentro de condiciones, los niveles aritméticos tienen el sufijo `_COND` y `VALOR_COND → ( COND )`. Así los paréntesis pueden contener aritmética o condiciones completas, y el grupo puede continuar con operadores: `(2 + 3) * 4 < 30`. Las asignaciones conservan sus producciones aritméticas `EXP`, `TERM`, `POT` y `VALOR`.
 
 ## 5. Alcance de la implementación actual
 
@@ -295,9 +315,9 @@ Estos detalles permiten describir con precisión qué verifica esta clase:
 - **Las llamadas a funciones aportan su tipo de retorno.** En `EvaluarTipoExpresion` se saltan los tokens de los argumentos, respetando los paréntesis anidados. Ese recorrido no comprueba la cantidad ni los tipos de los argumentos.
 - **No hay una comprobación específica de `REGR` en `Verificar`.** No debe atribuirse a esta clase una validación completa del retorno de las funciones.
 - **Los tipos se almacenan por nombre.** `tiposVariables` no es una pila de ámbitos; los parámetros se incorporan al mismo diccionario.
-- **El tratamiento de `POR` tiene un caso incompleto.** En la inicialización sin declaración, como `vI = 0`, `idx` queda en `0` y el código busca `ASIG` en esa posición, donde está la variable. Por eso esa rama no verifica la asignación inicial como pretende el comentario. La condición sí se envía a `VerificarCondicion`.
+- **Las asignaciones de `POR` se comprueban con un método común.** La posición de `=` se calcula a partir de la posición de la variable; si el destino no está declarado se reporta el error. Las líneas se obtienen de la parte correspondiente del encabezado, incluso cuando ocupa varias líneas.
 - **`ERROR` y `DESCONOCIDO` se propagan.** La comprobación final de asignación o condición se omite si se obtiene uno de esos estados. Que no aparezca una incompatibilidad final no demuestra que todos los tipos hayan sido resueltos.
-- **Las condiciones tienen su propia gramática.** La tabla de prioridades del verificador no describe por sí sola todo el reconocimiento sintáctico de condiciones. Por ejemplo, la gramática permite que `!` preceda a `COND_NOT`, mientras el verificador le asigna prioridad máxima. Para explicar la negación de una comparación sin esa diferencia de agrupación, conviene usar `!(vEdad < 18)`.
+- **Las condiciones tienen su propia gramática.** El verificador respeta la negación de comparaciones definida por `COND_NOT → ! COND_NOT`. El sintáctico admite paréntesis aritméticos dentro de comparaciones y el semántico comprueba el tipo del grupo resultante. Las correcciones y sus pruebas se explican en [Pruebas de los analizadores](pruebas-analizadores.md).
 
 ## 6. Guion breve para exponer
 
