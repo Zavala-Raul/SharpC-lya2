@@ -14,16 +14,16 @@ En el entorno WSL donde se ejecutaron, se utilizó el SDK instalado en Windows:
 "/mnt/c/Program Files/dotnet/dotnet.exe" run --project tests/Automatas.Pruebas/Automatas.Pruebas.csproj
 ```
 
-El ejecutable imprime `OK` o `FALLO` por caso y devuelve código de salida `1` si hay alguna prueba fallida. No requiere paquetes de un framework de pruebas. Los casos están en [`Program.cs`](../tests/Automatas.Pruebas/Program.cs); es un ejecutable de pruebas que se lanza con `dotnet run`, no con `dotnet test`.
+El ejecutable imprime `OK` o `FALLO` por caso y devuelve código de salida `1` si hay alguna prueba fallida. No requiere paquetes de un framework de pruebas. Los casos están en [`Program.cs`](../tests/Automatas.Pruebas/Program.cs), [`PruebasIntegracionAmbitos.cs`](../tests/Automatas.Pruebas/PruebasIntegracionAmbitos.cs), [`PruebasMemoria.cs`](../tests/Automatas.Pruebas/PruebasMemoria.cs) y [`PruebasErroresDocumentos.cs`](../tests/Automatas.Pruebas/PruebasErroresDocumentos.cs); se lanza con `dotnet run`, no con `dotnet test`.
 
 ## Qué se comprueba
 
-El proyecto compila directamente los archivos actuales de `AnalizadorSintacticoLl1`, `TablaSintacticaSharpC`, `VerificadorTipos`, `CatalogoTipos`, `TokenizadorFuenteSharpC`, `Simbolo` y `Funcion`. No copia ni simula los algoritmos del sintáctico o del verificador.
+El proyecto compila directamente los archivos actuales de `AnalizadorSintacticoLl1`, `TablaSintacticaSharpC`, `VerificadorTipos`, `AnalizadorInicializacion`, `CatalogoTipos`, `Ambito`, `TablaAmbitos`, `RegionMemoria`, `TokenizadorFuenteSharpC`, `Simbolo` y `Funcion`. No copia ni simula los algoritmos del sintáctico o del verificador.
 
 Cada caso utiliza tablas independientes y exige:
 
 - **Error sintáctico:** que exista el diagnóstico esperado en la línea esperada, con un fragmento específico del mensaje. Se permiten otros mensajes debidos a la recuperación de errores.
-- **Error semántico:** que primero pase el análisis sintáctico; después se comprueban el prefijo `ERROR DE TIPO`, el mensaje, la línea y la cantidad de errores. Un rechazo sintáctico no cuenta como detección correcta de un error semántico.
+- **Error semántico:** que primero pase el análisis sintáctico; después se comprueban el prefijo `ERROR DE TIPO`, `ERROR DE ÁMBITO`, `ERROR DE MEMORIA` o `ERROR DE INICIALIZACIÓN`, el mensaje, la línea y la cantidad de errores. Un rechazo sintáctico no cuenta como detección correcta de un error semántico.
 - **Programa válido:** que ninguna de las dos etapas reporte errores.
 
 Los números de línea comienzan en `1`. Un delimitador omitido puede reportarse en la línea del siguiente token, que es donde el sintáctico detecta la omisión. Por ejemplo, la falta de `;` antes de `}` se señala en la línea de esa llave.
@@ -32,16 +32,16 @@ Los números de línea comienzan en `1`. Un delimitador omitido puede reportarse
 
 Se usa el separador de lexemas real `TokenizadorFuenteSharpC`. Sus lexemas se clasifican mediante un fixture limitado al vocabulario de las pruebas. Esto evita depender de la base SQLite del AFD léxico y permite comprobar los analizadores sintáctico y semántico de forma aislada.
 
-La parte 1 de la entrega 2 añadió 12 casos que ejercitan `Ambito` directamente, sin pasar por el verificador: visibilidad desde la línea de declaración, rechazo del uso anterior, duplicados, prohibición del sombreado, reutilización de nombres entre hermanos, búsqueda a través de dos niveles, aislamiento entre bloques, funciones invocables antes de declararse, parámetros de función, registro de ámbito y clase, orden de declaraciones y errores de entrada. La documentación está en el [plan incremental](plan-semantica-incremental.md). La parte 2, que registra las declaraciones reales del programa, sigue pendiente.
+La parte 1 de la entrega 2 añadió 12 casos que ejercitan `Ambito` directamente, sin pasar por el verificador: visibilidad desde la línea de declaración, rechazo del uso anterior, duplicados, prohibición del sombreado, reutilización de nombres entre hermanos, búsqueda a través de dos niveles, aislamiento entre bloques, funciones invocables antes de declararse, parámetros de función, registro de ámbito y clase, orden de declaraciones y errores de entrada. La integración posterior añadió 38 casos de programas completos. La documentación está en el [plan incremental](plan-semantica-incremental.md).
 
-Las tablas comienzan vacías, salvo los casos que proporcionan explícitamente una función conocida; `Verificar` registra las declaraciones presentes en cada fragmento. No se ejecuta la construcción de tablas de `Form1`, el AFD léxico ni la presentación de errores en los controles de Windows Forms. Por ello, los resultados comprueban los diagnósticos devueltos por las clases, no su visualización en la interfaz.
+Las tablas comienzan vacías, salvo los casos que proporcionan explícitamente una firma externa; `Verificar` construye las declaraciones mediante `TablaAmbitos`, igual que en `Form1`. También se comprueban IDs, tipos y valores separados entre hermanos, firmas y límites de funciones multilínea, y reinicio de estado. No se ejecutan el AFD léxico ni los controles de Windows Forms. Los resultados comprueban los diagnósticos devueltos por las clases, no su visualización en la interfaz.
 
 ## Resultado de la ejecución
 
 Ejecución realizada con SDK **10.0.401**:
 
 ```text
-Total: 110; correctas: 110; fallidas: 0.
+Total: 200; correctas: 200; fallidas: 0.
 ```
 
 | Grupo | Casos | Resultado |
@@ -53,10 +53,27 @@ Total: 110; correctas: 110; fallidas: 0.
 | C01–C04: condiciones aisladas | 4 | Todos correctos. |
 | N01–N24: rango de literales ENT y clasificación numérica | 24 | Todos correctos. |
 | A01–A12: modelo de ámbitos | 12 | Todos correctos. |
+| B01–B38: integración de ámbitos, declaraciones y referencias | 38 | Todos correctos. |
+| D01–D15: disposición de memoria simbólica | 15 | Todos correctos. |
+| E01–E37: errores semánticos de 1.6/1.7 | 37 | Todos correctos. |
+
+También se compiló correctamente el proyecto Windows Forms original, .NET Framework 4.7.2, Debug/x64:
+
+```sh
+"/mnt/c/Program Files/dotnet/dotnet.exe" msbuild Automatas/Automatas.csproj /t:Build /p:Configuration=Debug /p:Platform=x64 /v:minimal /nologo
+```
+
+La compilación verifica la integración con `Form1`; no constituye una prueba visual de la aplicación.
 
 La primera ejecución tenía 51 casos, con 48 correctos y 3 fallidos. Se corrigieron las causas de esos fallos y se agregaron 23 casos de cobertura relacionados. Las expectativas originales de R01–R03 se conservaron. El comando ahora devuelve `0`.
 
 La entrega 1 del [plan incremental](plan-semantica-incremental.md) añadió otros 24 casos: mínimo y máximo de `ENT`, signos, ceros iniciales, valores fuera de rango, números muy largos, destino `DEC`, propagación de `ERROR`, línea del literal, impresión, retornos, argumentos, `POR` y condiciones aisladas. También comprueban la deduplicación por literal y línea y la clasificación de números con exponente como `DEC`. Los resultados de operaciones constantes y el rango de `DEC` quedan fuera de esta entrega.
+
+B01–B38 comprueban uso anterior en la misma línea, duplicados, sombreado independiente del orden textual, hermanos, parámetros, llamadas adelantadas, recursión, funciones anidadas, ámbito de `POR`, `REPT`/`HASTA`, casos de `ENCASO`, referencias en impresión/retornos/argumentos, expresiones de argumentos y conservación de símbolos tras errores. Véanse [Ámbitos y declaraciones](ambitos-y-declaraciones.md).
+
+D01–D10 construyen programas completos para comprobar offsets y tamaños en `INI` y marcos, parámetros, funciones anidadas, bloques y ciclos, declaraciones rechazadas, reasignaciones y reinicio del análisis. D11–D15 prueban directamente reserva única, desbordamiento sin mutación, rechazo de funciones como variables, `VAC` y tipos desconocidos. Véase [Memoria simbólica](memoria-simbolica.md).
+
+E01–E37 cubren inicialización definida por caminos (`SI`/`SINO`, `MIENT`, `POR`, `REPT`, `ENCASO`), parámetros, locales, lecturas en condiciones, llamadas y retornos. También verifican cantidad y tipos de argumentos, promociones `ENT → DEC`, retorno `VAC`, función contenedora y ausencia de errores derivados. R04 ahora espera tanto el error del destino no declarado como el uso independiente de `vI` sin inicializar. La [matriz 1.6/1.7](cobertura-errores-1.6-1.7.md) distingue lo detectable estáticamente de errores de ejecución.
 
 ### Errores sintácticos corroborados
 
@@ -263,4 +280,4 @@ También se adaptó `ObtenerAyudaSintaxis` para que los nuevos nombres usen los 
 - [`VerificadorTipos.cs`](../Automatas/VerificadorTipos.cs): asignaciones de `POR`, líneas de diagnóstico y prioridades de `!`.
 - [`TablaSintacticaSharpC.cs`](../Automatas/TablaSintacticaSharpC.cs): niveles aritméticos de condiciones y paréntesis.
 - [`AnalizadorSintacticoLl1.cs`](../Automatas/AnalizadorSintacticoLl1.cs): mensajes para los nuevos no terminales.
-- [`Program.cs` de pruebas](../tests/Automatas.Pruebas/Program.cs): 98 casos reproducibles.
+- [`Program.cs` de pruebas](../tests/Automatas.Pruebas/Program.cs), [`PruebasIntegracionAmbitos.cs`](../tests/Automatas.Pruebas/PruebasIntegracionAmbitos.cs), [`PruebasMemoria.cs`](../tests/Automatas.Pruebas/PruebasMemoria.cs) y [`PruebasErroresDocumentos.cs`](../tests/Automatas.Pruebas/PruebasErroresDocumentos.cs): 200 casos reproducibles.

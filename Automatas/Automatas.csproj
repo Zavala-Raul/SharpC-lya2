@@ -89,6 +89,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Ambito.cs" />
+    <Compile Include="TablaAmbitos.cs" />
+    <Compile Include="RegionMemoria.cs" />
+    <Compile Include="AnalizadorInicializacion.cs" />
     <Compile Include="AnalizadorLexico.cs" />
     <Compile Include="AnalizadorSintacticoLl1.cs" />
     <Compile Include="CatalogoTipos.cs" />

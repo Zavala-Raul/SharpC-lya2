@@ -6,20 +6,23 @@ Esta guía explica la implementación actual del proyecto y sirve como apoyo par
 
 ## 1. Cómo se conectan las etapas
 
-En `Form1.cs`, el flujo de análisis utiliza los tokens del programa y las tablas de símbolos y funciones. Si no hay errores léxicos registrados y existen tokens, ejecuta el análisis sintáctico; si este termina sin errores, ejecuta la verificación de tipos.
+En `Form1.cs`, si no hay errores léxicos y existen tokens, se ejecuta el análisis sintáctico. Si termina sin errores, `VerificadorTipos` construye los ámbitos y declaraciones desde los tokens y después verifica los tipos. El catálogo de lexemas no se utiliza como tabla de declaraciones.
 
 ```text
-Tokens y tablas de símbolos/funciones
+Tokens del programa
                   |
                   v
 AnalizadorSintacticoLl1: ¿la estructura es válida?
                   |
           si no hay errores
                   v
+TablaAmbitos: declaraciones y referencias visibles
+                  |
+                  v
 VerificadorTipos: ¿los tipos son compatibles?
                   |
                   v
-Lista de errores de tipo, con línea y mensaje
+Errores de ámbito y tipo, con línea y mensaje
 ```
 
 Por ejemplo:
@@ -108,22 +111,25 @@ La implementación semántica respeta esa misma agrupación: `EvaluarTipoExpresi
 
 | Dato | Para qué sirve |
 | --- | --- |
-| `tablaSimbolos` | Consultar variables y su propiedad `Tipo`. |
-| `tablaFunciones` | Consultar funciones y su `TipoRetorno`. |
-| `tiposVariables` | Mantener los tipos conocidos por nombre, incluidos parámetros y declaraciones reconocidas. |
+| `TablaAmbitos` | Árbol léxico, declaraciones y firmas construidos para el programa completo. |
+| `SimbolosPorToken` | Consultar la declaración exacta a la que corresponde cada aparición de un identificador. |
+| `inicios` | Conservar la posición fuente de cada fragmento de tokens usado en la inferencia. |
+| Diccionarios opcionales del constructor | Compatibilidad para expresiones aisladas y firmas externas explícitas. `Form1` no precarga declaraciones globales. |
 | `Errores` | Guardar pares de línea y mensaje de error. |
 
-La tabla de símbolos es un diccionario de información sobre variables. No es la pila semántica.
+La tabla de símbolos contiene declaraciones organizadas por ámbito, con un ID propio para cada una. No es la pila semántica.
 
 ### 3.2. Recorrido principal
 
-El método `Verificar` recorre los tokens y reconoce casos concretos:
+El método `Verificar` construye `TablaAmbitos`, agrega los diagnósticos de resolución y comprueba los literales numéricos. Después recorre los tokens:
 
-1. **Declaración con asignación:** registra el tipo declarado y comprueba la expresión inicial.
-2. **Declaración sin asignación:** registra el tipo de la variable.
+1. **Declaración con asignación:** consulta la declaración registrada y comprueba la expresión inicial.
+2. **Declaración sin asignación:** ya fue registrada durante la construcción de ámbitos.
 3. **Reasignación:** consulta el tipo de la variable y comprueba el nuevo valor.
 4. **Condiciones de `SI`, `MIENT` y `HASTA`:** comprueba que el tipo resultante sea `BOOL`.
 5. **Bucle `POR`:** delega en `VerificarBuclePor`, que separa inicialización, condición e incremento. `VerificarAsignacionPor` comprueba tanto la inicialización (con o sin declaración) como el incremento; `VerificarCondicion` comprueba la condición.
+6. **Impresión, retornos y llamadas:** comprueba las operaciones de sus expresiones, incluidos argumentos anidados; valida la cantidad y tipos de argumentos y el tipo de cada `REGR` presente.
+7. **Inicialización definida:** tras inferir tipos, comprueba lecturas sin valor asignado mediante conjuntos de símbolos y combina los estados de las ramas. Véase [Cobertura de errores 1.6/1.7](cobertura-errores-1.6-1.7.md).
 
 Para una asignación, la secuencia principal es:
 
@@ -148,7 +154,7 @@ VerificarAsignacion
 | Cadena, como `"hola"` | `TXT` |
 | Carácter, como `'A'` | `CAR` |
 | Token de literal booleano | `BOOL` |
-| Variable | El tipo registrado para su nombre. |
+| Variable | El tipo del símbolo visible asociado a su posición de token. |
 | Función conocida | Su tipo de retorno. |
 
 Una variable o función que no se encuentra produce un error. `ERROR` indica que se detectó un problema; `DESCONOCIDO` indica que no se logró identificar un tipo. No son tipos declarables del lenguaje.
@@ -157,16 +163,20 @@ Una variable o función que no se encuentra produce un error. `ERROR` indica que
 
 ### 3.3.1 Modelo de ámbitos
 
-`Ambito.cs` representa la cadena principal/hijos y las reglas de visibilidad, pero todavía no recibe los tokens del programa:
+`Ambito.cs` representa la cadena de padres e hijos. `TablaAmbitos.cs` construye esa cadena desde los tokens y la integra con el verificador:
 
-- Cada bloque o función crea un ámbito hijo del principal, que corresponde a `INI`.
-- Una declaración se encuentra desde su línea hasta el final de su ámbito. `Simbolo.LineaDeclaracion` fija ese punto.
+- Cada bloque o función crea un ámbito hijo de su contenedor; `INI` es el principal.
+- Una variable se encuentra desde `Simbolo.PosicionDeclaracion` hasta el final de su ámbito. `LineaDeclaracion` se utiliza en los mensajes; el índice de token distingue apariciones en una misma línea.
 - La declaración más cercana gana aunque no sea visible todavía. Así, usar una variable antes de declararla produce un error y no se resuelve con el ámbito padre.
-- No hay sombreado: un hijo no puede repetir un nombre de un padre. Los hermanos sí pueden reutilizar un nombre.
+- No hay sombreado: un hijo no puede repetir un nombre de ningún antecesor, independientemente del orden de las declaraciones. Los hermanos sí pueden reutilizar un nombre.
 - `Simbolo.IgnorarLineaDeclaracion` permite que las funciones se invoquen antes de aparecer en el archivo.
 - `Simbolo.Clase` distingue `VARIABLE`, `FUNCION` y `PARAMETRO`.
 
-`Simbolo.Ambito` es una referencia al ámbito propietario. La tabla que usa `VerificadorTipos` continúa siendo un diccionario por nombre, por lo que estas reglas todavía no se aplican a los programas analizados.
+`Simbolo.Ambito` es una referencia al ámbito propietario. Las reglas ya se aplican a los programas completos. `POR` comparte ámbito entre encabezado y cuerpo; `REPT` lo comparte con `HASTA`; cada caso de `ENCASO` tiene su propio ámbito. Las funciones anidadas conservan el padre léxico. Véanse [Ámbitos y declaraciones](ambitos-y-declaraciones.md) para ejemplos, algoritmo y límites.
+
+Tras construir las declaraciones, `TablaAmbitos` calcula la [memoria simbólica](memoria-simbolica.md): una región para `INI` y otra por función, con `TamanoBytes` y `DesplazamientoBytes` en cada variable o parámetro válido. La región es una descripción estática; el verificador no reserva memoria real ni calcula valores numéricos.
+
+La relación conceptual entre estas comprobaciones y las producciones de la gramática está en [Acciones semánticas asociadas a la gramática](esquema-traduccion-semantica.md). En la interfaz, `dgvSimbolos` expone los datos de las declaraciones y `dgvFunciones` el tamaño de cada marco.
 
 ### 3.4. Reglas de las operaciones
 
@@ -283,7 +293,7 @@ El verificador analiza la expresión `2 + 3 * 4.5`. En la siguiente tabla, la ci
 | Aplicar `+` | `ENT + DEC → DEC` | `[DEC]` | `[]` |
 | Devolver el tipo | Extraer el `DEC` final | `[]` | `[]` |
 
-Finalmente, `SonCompatiblesAsignacion("DEC", "DEC")` devuelve verdadero. Si la variable existe en `tablaSimbolos`, se guarda en `Valor` el texto `2 + 3 * 4.5`, **no** el resultado numérico `15.5`.
+Finalmente, `SonCompatiblesAsignacion("DEC", "DEC")` devuelve verdadero. En el símbolo resuelto como destino se guarda en `Valor` el texto `2 + 3 * 4.5`, **no** el resultado numérico `15.5`.
 
 Con `(2 + 3) * 4.5`, al leer `)` se combina primero `ENT + ENT → ENT`. Después se comprueba `ENT * DEC → DEC`. Los paréntesis cambian el orden de combinación, aunque en este ejemplo el tipo final siga siendo `DEC`.
 
@@ -312,9 +322,10 @@ Dentro de condiciones, los niveles aritméticos tienen el sufijo `_COND` y `VALO
 Estos detalles permiten describir con precisión qué verifica esta clase:
 
 - **Infiere tipos; no ejecuta el programa.** No calcula el valor de las expresiones.
-- **Las llamadas a funciones aportan su tipo de retorno.** En `EvaluarTipoExpresion` se saltan los tokens de los argumentos, respetando los paréntesis anidados. Ese recorrido no comprueba la cantidad ni los tipos de los argumentos.
-- **No hay una comprobación específica de `REGR` en `Verificar`.** No debe atribuirse a esta clase una validación completa del retorno de las funciones.
-- **Los tipos se almacenan por nombre.** `tiposVariables` no es una pila de ámbitos; los parámetros se incorporan al mismo diccionario.
+- **Las llamadas a funciones aportan su tipo de retorno.** Se infieren las expresiones de sus argumentos, incluidos los anidados, y se compara la cantidad y tipos con los parámetros formales.
+- **`REGR` comprueba su expresión.** Su tipo se compara con la firma de la función más cercana; falta comprobar que *todas las rutas* retornen en funciones no `VAC`.
+- **Inicialización definida:** se detectan lecturas sin asignación previa incluso en condiciones, retornos y argumentos. La unión de ramas conserva solo los símbolos inicializados en todas ellas; un bucle `MIENT` o `POR` podría no ejecutarse.
+- **Los identificadores se resuelven por ámbito y posición.** Los parámetros pertenecen a su función; los hermanos pueden tener nombres iguales con tipos diferentes.
 - **Las asignaciones de `POR` se comprueban con un método común.** La posición de `=` se calcula a partir de la posición de la variable; si el destino no está declarado se reporta el error. Las líneas se obtienen de la parte correspondiente del encabezado, incluso cuando ocupa varias líneas.
 - **`ERROR` y `DESCONOCIDO` se propagan.** La comprobación final de asignación o condición se omite si se obtiene uno de esos estados. Que no aparezca una incompatibilidad final no demuestra que todos los tipos hayan sido resueltos.
 - **Las condiciones tienen su propia gramática.** El verificador respeta la negación de comparaciones definida por `COND_NOT → ! COND_NOT`. El sintáctico admite paréntesis aritméticos dentro de comparaciones y el semántico comprueba el tipo del grupo resultante. Las correcciones y sus pruebas se explican en [Pruebas de los analizadores](pruebas-analizadores.md).
@@ -339,6 +350,9 @@ Estos detalles permiten describir con precisión qué verifica esta clase:
 | Jerarquía aritmética | [`TablaSintacticaSharpC.cs`](../Automatas/TablaSintacticaSharpC.cs): `AgregarExpresiones`. |
 | Pila de reconocimiento LL(1) | [`AnalizadorSintacticoLl1.cs`](../Automatas/AnalizadorSintacticoLl1.cs): `Analizar` y `ExpandirProduccion`. |
 | Recorrido semántico | [`VerificadorTipos.cs`](../Automatas/VerificadorTipos.cs): `Verificar`. |
+| Ámbitos, declaraciones y resolución | [`TablaAmbitos.cs`](../Automatas/TablaAmbitos.cs): `Recorrer`, `RegistrarDeclaraciones` y `ResolverReferencias`. |
+| Disposición de memoria simbólica | [`TablaAmbitos.cs`](../Automatas/TablaAmbitos.cs): `CalcularDisposicion`; [`RegionMemoria.cs`](../Automatas/RegionMemoria.cs): `Reservar`. |
+| Errores de uso antes de inicializar | [`AnalizadorInicializacion.cs`](../Automatas/AnalizadorInicializacion.cs): `Recorrer`, `Leer` y `UnirRamas`. |
 | Pilas semánticas y su recorrido | `VerificadorTipos.cs`: `EvaluarTipoExpresion` y `AplicarOperador`. |
 | Reglas de tipos | `VerificadorTipos.cs`: `ObtenerTipoOperando`, `EvaluarOperacion`, `SonCompatiblesAsignacion` y `VerificarCondicion`. |
 | Prioridades de operadores | `VerificadorTipos.cs`: `ObtenerPrecedencia`. |

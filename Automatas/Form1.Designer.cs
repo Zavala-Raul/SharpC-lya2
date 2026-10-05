@@ -47,6 +47,12 @@
             this.nombre = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tipoDato = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.valor = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ambitoSimbolo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.claseSimbolo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.lineaDeclaracion = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.regionSimbolo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tamanoBytes = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.desplazamientoBytes = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
@@ -56,6 +62,8 @@
             this.colTipoRetorno = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colParametros = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colCuerpo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colRegionFuncion = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colTamanoMarco = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.label8 = new System.Windows.Forms.Label();
             this.dgvErroresSintaxis = new System.Windows.Forms.DataGridView();
             this.numLinea = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -209,16 +217,24 @@
             // 
             this.dgvSimbolos.AllowUserToAddRows = false;
             this.dgvSimbolos.AllowUserToDeleteRows = false;
-            this.dgvSimbolos.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvSimbolos.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.None;
             this.dgvSimbolos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvSimbolos.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.identificador,
             this.nombre,
             this.tipoDato,
-            this.valor});
+            this.valor,
+            this.ambitoSimbolo,
+            this.claseSimbolo,
+            this.lineaDeclaracion,
+            this.regionSimbolo,
+            this.tamanoBytes,
+            this.desplazamientoBytes});
             this.dgvSimbolos.Location = new System.Drawing.Point(1138, 346);
             this.dgvSimbolos.Name = "dgvSimbolos";
-            this.dgvSimbolos.RowHeadersWidth = 82;
+            this.dgvSimbolos.ReadOnly = true;
+            this.dgvSimbolos.RowHeadersWidth = 40;
+            this.dgvSimbolos.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.dgvSimbolos.Size = new System.Drawing.Size(399, 267);
             this.dgvSimbolos.TabIndex = 15;
             // 
@@ -228,6 +244,7 @@
             this.identificador.HeaderText = "Identificador";
             this.identificador.MinimumWidth = 10;
             this.identificador.Name = "identificador";
+            this.identificador.Width = 80;
             // 
             // nombre
             // 
@@ -235,6 +252,7 @@
             this.nombre.HeaderText = "Nombre";
             this.nombre.MinimumWidth = 10;
             this.nombre.Name = "nombre";
+            this.nombre.Width = 105;
             // 
             // tipoDato
             // 
@@ -242,6 +260,7 @@
             this.tipoDato.HeaderText = "Tipo De Dato";
             this.tipoDato.MinimumWidth = 10;
             this.tipoDato.Name = "tipoDato";
+            this.tipoDato.Width = 96;
             // 
             // valor
             // 
@@ -249,6 +268,31 @@
             this.valor.HeaderText = "Valor";
             this.valor.MinimumWidth = 10;
             this.valor.Name = "valor";
+            this.valor.Width = 145;
+            // ambitoSimbolo
+            this.ambitoSimbolo.HeaderText = "Ámbito";
+            this.ambitoSimbolo.Name = "ambitoSimbolo";
+            this.ambitoSimbolo.Width = 105;
+            // claseSimbolo
+            this.claseSimbolo.HeaderText = "Clase";
+            this.claseSimbolo.Name = "claseSimbolo";
+            this.claseSimbolo.Width = 90;
+            // lineaDeclaracion
+            this.lineaDeclaracion.HeaderText = "Línea decl.";
+            this.lineaDeclaracion.Name = "lineaDeclaracion";
+            this.lineaDeclaracion.Width = 90;
+            // regionSimbolo
+            this.regionSimbolo.HeaderText = "Región";
+            this.regionSimbolo.Name = "regionSimbolo";
+            this.regionSimbolo.Width = 145;
+            // tamanoBytes
+            this.tamanoBytes.HeaderText = "Tamaño (bytes)";
+            this.tamanoBytes.Name = "tamanoBytes";
+            this.tamanoBytes.Width = 110;
+            // desplazamientoBytes
+            this.desplazamientoBytes.HeaderText = "Desplazamiento (bytes)";
+            this.desplazamientoBytes.Name = "desplazamientoBytes";
+            this.desplazamientoBytes.Width = 155;
             // 
             // pictureBox1
             // 
@@ -293,16 +337,22 @@
             // 
             // dgvFunciones
             // 
-            this.dgvFunciones.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvFunciones.AllowUserToAddRows = false;
+            this.dgvFunciones.AllowUserToDeleteRows = false;
+            this.dgvFunciones.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.None;
             this.dgvFunciones.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvFunciones.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.colNombre,
             this.colTipoRetorno,
             this.colParametros,
-            this.colCuerpo});
+            this.colCuerpo,
+            this.colRegionFuncion,
+            this.colTamanoMarco});
             this.dgvFunciones.Location = new System.Drawing.Point(1050, 708);
             this.dgvFunciones.Name = "dgvFunciones";
-            this.dgvFunciones.RowHeadersWidth = 82;
+            this.dgvFunciones.ReadOnly = true;
+            this.dgvFunciones.RowHeadersWidth = 40;
+            this.dgvFunciones.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.dgvFunciones.Size = new System.Drawing.Size(487, 176);
             this.dgvFunciones.TabIndex = 21;
             this.dgvFunciones.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvFunciones_CellContentClick);
@@ -312,24 +362,36 @@
             this.colNombre.HeaderText = "Nombre";
             this.colNombre.MinimumWidth = 10;
             this.colNombre.Name = "colNombre";
+            this.colNombre.Width = 100;
             // 
             // colTipoRetorno
             // 
             this.colTipoRetorno.HeaderText = "Tipo Retorno";
             this.colTipoRetorno.MinimumWidth = 10;
             this.colTipoRetorno.Name = "colTipoRetorno";
+            this.colTipoRetorno.Width = 95;
             // 
             // colParametros
             // 
             this.colParametros.HeaderText = "Parámetros";
             this.colParametros.MinimumWidth = 10;
             this.colParametros.Name = "colParametros";
+            this.colParametros.Width = 155;
             // 
             // colCuerpo
             // 
             this.colCuerpo.HeaderText = "Cuerpo";
             this.colCuerpo.MinimumWidth = 10;
             this.colCuerpo.Name = "colCuerpo";
+            this.colCuerpo.Width = 95;
+            // colRegionFuncion
+            this.colRegionFuncion.HeaderText = "Región";
+            this.colRegionFuncion.Name = "colRegionFuncion";
+            this.colRegionFuncion.Width = 145;
+            // colTamanoMarco
+            this.colTamanoMarco.HeaderText = "Marco (bytes)";
+            this.colTamanoMarco.Name = "colTamanoMarco";
+            this.colTamanoMarco.Width = 110;
             // 
             // label8
             // 
@@ -429,11 +491,19 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn nombre;
         private System.Windows.Forms.DataGridViewTextBoxColumn tipoDato;
         private System.Windows.Forms.DataGridViewTextBoxColumn valor;
+        private System.Windows.Forms.DataGridViewTextBoxColumn ambitoSimbolo;
+        private System.Windows.Forms.DataGridViewTextBoxColumn claseSimbolo;
+        private System.Windows.Forms.DataGridViewTextBoxColumn lineaDeclaracion;
+        private System.Windows.Forms.DataGridViewTextBoxColumn regionSimbolo;
+        private System.Windows.Forms.DataGridViewTextBoxColumn tamanoBytes;
+        private System.Windows.Forms.DataGridViewTextBoxColumn desplazamientoBytes;
         private System.Windows.Forms.DataGridView dgvFunciones;
         private System.Windows.Forms.DataGridViewTextBoxColumn colNombre;
         private System.Windows.Forms.DataGridViewTextBoxColumn colTipoRetorno;
         private System.Windows.Forms.DataGridViewTextBoxColumn colParametros;
         private System.Windows.Forms.DataGridViewTextBoxColumn colCuerpo;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colRegionFuncion;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colTamanoMarco;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.DataGridViewTextBoxColumn linea;
         private System.Windows.Forms.DataGridViewTextBoxColumn mensaje;

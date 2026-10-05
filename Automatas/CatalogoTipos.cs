@@ -3,7 +3,6 @@ using System.Globalization;
 
 namespace Automatas
 {
-    // Representación del lenguaje: no son tamaños de objetos de .NET ni direcciones reales.
     internal static class CatalogoTipos
     {
         public const int MinimoEntero = int.MinValue;
@@ -18,7 +17,7 @@ namespace Automatas
                 case "BOOL": return 1;
                 case "CAR": return 2;
                 case "TXT": return 8; // Referencia simbólica; excluye el contenido de la cadena.
-                case "VAC": return 0; // Ausencia de valor; no autoriza variables VAC.
+                case "VAC": return 0;
                 default: throw new ArgumentException("Tipo sin tamaño definido: " + tipo, nameof(tipo));
             }
         }
@@ -28,7 +27,6 @@ namespace Automatas
             return lexema.Contains(".") || lexema.IndexOf('e') >= 0 || lexema.IndexOf('E') >= 0;
         }
 
-        // Se recibe un literal previamente reconocido por el léxico como número.
         public static bool EsLiteralEnteroEnRango(string lexema)
         {
             return int.TryParse(lexema, NumberStyles.AllowLeadingSign,

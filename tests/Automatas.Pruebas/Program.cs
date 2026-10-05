@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Automatas;
 
-internal static class Program
+internal static partial class Program
 {
     private enum ResultadoEsperado { Valido, ErrorSintactico, ErrorSemantico }
 
@@ -17,6 +17,7 @@ internal static class Program
         public bool SoloCondicion;
         public List<(int Linea, string Mensaje)> Esperados = new List<(int, string)>();
         public Dictionary<string, Funcion> Funciones = new Dictionary<string, Funcion>();
+        public Action<VerificadorTipos> ComprobarEstado;
     }
 
     private static int Main()
@@ -41,6 +42,7 @@ internal static class Program
         }
 
         var ambitos = CrearCasosAmbito();
+        ambitos.AddRange(CrearCasosMemoriaDirectos());
         foreach (var (nombre, accion) in ambitos)
         {
             try
@@ -174,6 +176,11 @@ internal static class Program
                 "La condición debe evaluar a 'BOOL', pero se obtuvo 'ENT'.")
         };
 
+        // La referencia del incremento también es independiente del destino
+        // desconocido de la inicialización: vI fue declarada, pero no iniciada.
+        casos.Single(c => c.Nombre.StartsWith("R04 ")).Esperados.Add((2,
+            "ERROR DE INICIALIZACIÓN: La variable 'vI' se usa sin inicializar."));
+
         var recuperacion = Sintaxis("S13 Recuperación y dos omisiones", EnPrograma("ENT vA = 1\nENT vB = 2\nENT vC = 3;"),
             3, "OMISIÓN: Falta punto y coma ';'");
         recuperacion.Esperados.Add((4, "OMISIÓN: Falta punto y coma ';'"));
@@ -201,6 +208,9 @@ internal static class Program
         condicionIncompleta.SoloCondicion = true;
         casos.Add(condicionIncompleta);
         casos.AddRange(CrearCasosRangoEntero());
+        casos.AddRange(CrearCasosIntegracionAmbitos());
+        casos.AddRange(CrearCasosMemoria());
+        casos.AddRange(CrearCasosErroresDocumentos());
         return casos;
     }
 
@@ -446,6 +456,7 @@ internal static class Program
         else
             verificador.Verificar(tokens);
         ComprobarMensajes(caso.Esperados, verificador.Errores, true);
+        caso.ComprobarEstado?.Invoke(verificador);
     }
 
     private static void ComprobarMensajes(List<(int Linea, string Mensaje)> esperados,
@@ -472,6 +483,8 @@ internal static class Program
     {
         { "INI", "PR1" }, { "FUNC", "PR2" }, { "REGR", "PR3" }, { "IMP", "PR5" },
         { "SI", "PR11" }, { "MIENT", "PR15" },
+        { "SINO", "PR12" }, { "ENCASO", "PR13" }, { "DFCT", "PR14" },
+        { "ROMPER", "PR19" }, { "VAC", "PR28" }, { "LEE", "PR4" }, { ":", "CE20" },
         { "REPT", "PR16" }, { "HASTA", "PR17" }, { "POR", "PR18" },
         { "VDD", "PR20" }, { "FLS", "PR21" }, { "ENT", "PR23" },
         { "DEC", "PR24" }, { "TXT", "PR25" }, { "BOOL", "PR26" }, { "CAR", "PR27" },

@@ -14,6 +14,7 @@ namespace Automatas
 
         private readonly Dictionary<string, Simbolo> declaraciones =
             new Dictionary<string, Simbolo>(StringComparer.Ordinal);
+        private readonly List<Simbolo> ordenDeclaraciones = new List<Simbolo>();
 
         public Ambito(string nombre, string clase, Ambito padre)
         {
@@ -32,7 +33,7 @@ namespace Automatas
         public string Clase { get; }
         public Ambito Padre { get; }
         public List<Ambito> Hijos { get; } = new List<Ambito>();
-        public IEnumerable<Simbolo> Declaraciones => declaraciones.Values;
+        public IEnumerable<Simbolo> Declaraciones => ordenDeclaraciones.AsReadOnly();
         public int NumeroDeclaraciones => declaraciones.Count;
 
         public Ambito CrearHijo(string nombre, string clase)
@@ -72,6 +73,7 @@ namespace Automatas
             if (string.IsNullOrEmpty(simbolo.Clase)) simbolo.Clase = "VARIABLE";
             simbolo.Ambito = this;
             declaraciones.Add(simbolo.Nombre, simbolo);
+            ordenDeclaraciones.Add(simbolo);
             return true;
         }
 
@@ -98,6 +100,23 @@ namespace Automatas
         {
             (Simbolo declaracion, bool visible) = BuscarEnCadena(nombre, linea);
             return visible ? declaracion : null;
+        }
+
+        // La tabla completa usa posiciones para distinguir usos y declaraciones
+        // incluso cuando están en la misma línea. La API por línea se conserva
+        // para los clientes del modelo que no disponen de tokens.
+        public Simbolo BuscarDeclaracion(string nombre)
+        {
+            for (Ambito actual = this; actual != null; actual = actual.Padre)
+                if (actual.declaraciones.TryGetValue(nombre, out Simbolo simbolo)) return simbolo;
+            return null;
+        }
+
+        public Simbolo BuscarVisibleEnPosicion(string nombre, int posicion)
+        {
+            Simbolo simbolo = BuscarDeclaracion(nombre);
+            return simbolo != null && (simbolo.IgnorarLineaDeclaracion ||
+                simbolo.PosicionDeclaracion <= posicion) ? simbolo : null;
         }
 
         public Simbolo BuscarEnPadres(string nombre)

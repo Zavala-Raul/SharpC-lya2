@@ -17,6 +17,8 @@ namespace Automatas
         public int LineaInicio { get; set; }          // Línea del encabezado
         public int LineaCuerpoInicio { get; set; }    // Línea del '{'
         public int LineaCuerpoFin { get; set; }       // Línea del '}'
+        public RegionMemoria Region { get; set; }
+        public int TamanoMarcoBytes => Region != null ? Region.TamanoBytes : 0;
     }
 
 

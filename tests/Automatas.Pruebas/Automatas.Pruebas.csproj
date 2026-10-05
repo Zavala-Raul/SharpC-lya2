@@ -7,6 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Automatas/Ambito.cs" Link="Produccion/Ambito.cs" />
+    <Compile Include="../../Automatas/TablaAmbitos.cs" Link="Produccion/TablaAmbitos.cs" />
+    <Compile Include="../../Automatas/RegionMemoria.cs" Link="Produccion/RegionMemoria.cs" />
+    <Compile Include="../../Automatas/AnalizadorInicializacion.cs" Link="Produccion/AnalizadorInicializacion.cs" />
     <Compile Include="../../Automatas/AnalizadorSintacticoLl1.cs" Link="Produccion/AnalizadorSintacticoLl1.cs" />
     <Compile Include="../../Automatas/CatalogoTipos.cs" Link="Produccion/CatalogoTipos.cs" />
     <Compile Include="../../Automatas/TablaSintacticaSharpC.cs" Link="Produccion/TablaSintacticaSharpC.cs" />

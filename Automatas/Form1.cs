@@ -28,10 +28,10 @@ namespace Automatas
         private AnalizadorSintacticoLl1 analizadorSintactico =
             new AnalizadorSintacticoLl1(TablaSintacticaSharpC.CrearTablaCompleta());
 
-        // Tabla de símbolos y funciones
-        private Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
-        private int contadorSimbolos = 1;
-        private Dictionary<string, Funcion> tablaFunciones = new Dictionary<string, Funcion>();
+        // Declaraciones semánticas, distintas del catálogo de lexemas de la salida léxica.
+        private List<Simbolo> tablaSimbolos = new List<Simbolo>();
+        private List<Funcion> tablaFunciones = new List<Funcion>();
+        private Dictionary<string, int> identificadoresLexicos = new Dictionary<string, int>();
 
         public Form1()
         {
@@ -123,8 +123,10 @@ namespace Automatas
 
         private void EjecutarVerificacionTipos()
         {
-            var verificador = new VerificadorTipos(tablaSimbolos, tablaFunciones);
+            var verificador = new VerificadorTipos(null);
             verificador.Verificar(tokensSintactico);
+            tablaSimbolos.AddRange(verificador.TablaAmbitos.Simbolos.Where(s => s.Clase != "FUNCION"));
+            tablaFunciones.AddRange(verificador.TablaAmbitos.Funciones);
             erroresTipos.AddRange(verificador.Errores);
         }
 
@@ -237,36 +239,14 @@ namespace Automatas
             return 9;
         }
 
-        private int RegistrarIdentificador(string nombre, string tipo = "", string valor = "")
+        private int RegistrarIdentificadorLexico(string nombre)
         {
-            string id = nombre.Trim();
-            if (tablaSimbolos.ContainsKey(id))
+            if (!identificadoresLexicos.TryGetValue(nombre, out int numero))
             {
-                var s = tablaSimbolos[id];
-                if (!string.IsNullOrEmpty(tipo)) s.Tipo = tipo;
-                if (!string.IsNullOrEmpty(valor)) s.Valor = valor;
-                return s.Numero;
+                numero = identificadoresLexicos.Count + 1;
+                identificadoresLexicos.Add(nombre, numero);
             }
-            var sim = new Simbolo() { Numero = contadorSimbolos, Nombre = id, Tipo = tipo, Valor = valor };
-            tablaSimbolos.Add(id, sim);
-            contadorSimbolos++;
-            return sim.Numero;
-        }
-
-        private void RegistrarFuncion(string nombre, string tipoRetorno, int lineaInicio)
-        {
-            string id = nombre.Trim();
-            if (!tablaFunciones.ContainsKey(id))
-            {
-                var f = new Funcion() { Nombre = id, TipoRetorno = tipoRetorno, LineaInicio = lineaInicio, LineaCuerpoInicio = 0, LineaCuerpoFin = 0 };
-                tablaFunciones.Add(id, f);
-            }
-        }
-
-        private void AgregarParametroFuncion(string nombreFuncion, string tipoParam, string nombreParam)
-        {
-            if (!tablaFunciones.ContainsKey(nombreFuncion)) return;
-            tablaFunciones[nombreFuncion].Parametros.Add((tipoParam, nombreParam));
+            return numero;
         }
 
         private void LlenarDgvErrores()
@@ -288,53 +268,61 @@ namespace Automatas
         private void LlenarTablaSimbolos()
         {
             dgvSimbolos.Rows.Clear();
-            foreach (var sim in tablaSimbolos.Values.OrderBy(s => s.Numero)) dgvSimbolos.Rows.Add(sim.Numero, sim.Nombre, sim.Tipo, sim.Valor);
+            foreach (var sim in tablaSimbolos.OrderBy(s => s.Numero))
+            {
+                dgvSimbolos.Rows.Add(sim.Numero, sim.Nombre, sim.Tipo, sim.Valor,
+                    sim.Ambito?.Nombre ?? "—", sim.Clase, sim.LineaDeclaracion,
+                    sim.Region?.Nombre ?? "—",
+                    sim.TamanoBytes.HasValue ? sim.TamanoBytes.Value.ToString() : "—",
+                    sim.DesplazamientoBytes.HasValue ? sim.DesplazamientoBytes.Value.ToString() : "—");
+            }
         }
 
         private void LlenarTablaFunciones()
         {
             dgvFunciones.Rows.Clear();
-            foreach (var f in tablaFunciones.Values)
+            foreach (var f in tablaFunciones)
             {
                 string listaParams = string.Join(", ", f.Parametros.Select(p => $"{p.tipo} {p.nombre}"));
                 string cuerpo = (f.LineaCuerpoInicio > 0 && f.LineaCuerpoFin > 0) ? $"{f.LineaCuerpoInicio} - {f.LineaCuerpoFin}" : "—";
-                dgvFunciones.Rows.Add(f.Nombre, f.TipoRetorno, listaParams, cuerpo);
+                dgvFunciones.Rows.Add(f.Nombre, f.TipoRetorno, listaParams, cuerpo,
+                    f.Region?.Nombre ?? "—", f.Region != null ? f.TamanoMarcoBytes.ToString() : "—");
             }
         }
 
-        private string ObtenerValorAsignadoEnLinea(
-    string lineaTexto,
-    List<(int linea, int columna, string token)> tokensLinea)
-        {
-            int idxAsig = -1;
+    //    private string ObtenerValorAsignadoEnLinea(
+    //string lineaTexto,
+    //List<(int linea, int columna, string token)> tokensLinea)
+    //    {
+    //        int idxAsig = -1;
 
-            foreach (var tk in tokensLinea)
-            {
-                string resultado = lexico.AnalizarCadena(tk.token)
-                                         .Replace("TOKEN: ", "")
-                                         .Trim();
+    //        foreach (var tk in tokensLinea)
+    //        {
+    //            string resultado = lexico.AnalizarCadena(tk.token)
+    //                                     .Replace("TOKEN: ", "")
+    //                                     .Trim();
 
-                if (resultado == "ASIG")
-                {
-                    idxAsig = tk.columna;
-                    break;
-                }
-            }
+    //            if (resultado == "ASIG")
+    //            {
+    //                idxAsig = tk.columna;
+    //                break;
+    //            }
+    //        }
 
-            if (idxAsig == -1)
-                return "";
+    //        if (idxAsig == -1)
+    //            return "";
 
-            int idxPuntoComa = lineaTexto.IndexOf(';', idxAsig);
+    //        int idxPuntoComa = lineaTexto.IndexOf(';', idxAsig);
 
-            if (idxPuntoComa == -1)
-                idxPuntoComa = lineaTexto.Length;
+    //        if (idxPuntoComa == -1)
+    //            idxPuntoComa = lineaTexto.Length;
 
-            string valor = lineaTexto.Substring(
-                idxAsig + 1,
-                idxPuntoComa - idxAsig - 1);
+    //        string valor = lineaTexto.Substring(
+    //            idxAsig + 1,
+    //            idxPuntoComa - idxAsig - 1);
 
-            return valor.Trim();
-        }
+    //        return valor.Trim();
+    //    }
 
         private void GuardarArchivo()
         {
@@ -379,7 +367,7 @@ namespace Automatas
             tablaSimbolos.Clear();
             tablaFunciones.Clear();
             dgvErroresSintaxis.Rows.Clear();
-            contadorSimbolos = 1;
+            identificadoresLexicos.Clear();
             scintilla2.Text = "";
             intTotalErrores = 0;
 
@@ -388,10 +376,6 @@ namespace Automatas
             erroresTipos.Clear();
 
             int totalLineas = scintilla1.Lines.Count;
-            string nombreFuncionActual = null;
-            bool esDeclaracionFuncion = false;
-            bool dentroDeFuncion = false;
-            string tipoActual = "";
 
             for (int i = 0; i < totalLineas; i++)
             {
@@ -442,60 +426,9 @@ namespace Automatas
                             tokensSintactico.Add((tokenSintactico, lexema, lineaToken));
                         }
 
-                        if (lexema.Equals("FUNC", StringComparison.OrdinalIgnoreCase))
-                        {
-                            esDeclaracionFuncion = true;
-                            AgregarTokenATabla(resultadoNormalizado, estiloToken);
-                            continue;
-                        }
-
-                        if (resultadoNormalizado.StartsWith("PR"))
-                        {
-                            string posibleTipo = ObtenerTipoDesdePR(resultadoNormalizado);
-                            if (!string.IsNullOrEmpty(posibleTipo)) tipoActual = posibleTipo;
-                            AgregarTokenATabla(resultadoNormalizado, estiloToken);
-                            continue;
-                        }
-
-                        if (resultadoNormalizado.StartsWith("IDF"))
-                        {
-                            nombreFuncionActual = lexema;
-                            RegistrarFuncion(nombreFuncionActual, tipoActual, lineaToken);
-                            AgregarTokenATabla(resultadoNormalizado, estiloToken);
-                            continue;
-                        }
-
-                        if (esDeclaracionFuncion && resultadoNormalizado.StartsWith("IDV"))
-                        {
-
-                            string tipoParam = string.IsNullOrEmpty(tipoActual) ? "?" : tipoActual;
-
-                            if (!string.IsNullOrEmpty(nombreFuncionActual))
-                            {
-                                AgregarParametroFuncion(nombreFuncionActual, tipoParam, lexema);
-                            }
-
-                            int num = RegistrarIdentificador(lexema, tipoParam, "");
-
-                            AgregarTokenATabla(resultadoNormalizado + num.ToString(), estiloToken);
-
-                            tipoActual = "";
-                            continue;
-                        }
-
                         if (resultadoNormalizado.StartsWith("IDV"))
                         {
-                            int num;
-                            if (!string.IsNullOrEmpty(tipoActual) && !dentroDeFuncion)
-                            {
-                                num = RegistrarIdentificador(lexema, tipoActual, "");
-                                tipoActual = "";
-                            }
-                            else
-                            {
-                                num = tablaSimbolos.ContainsKey(lexema) ? tablaSimbolos[lexema].Numero : RegistrarIdentificador(lexema, "", "");
-                            }
-
+                            int num = RegistrarIdentificadorLexico(lexema);
                             AgregarTokenATabla(resultadoNormalizado + num.ToString(), estiloToken);
                             continue;
                         }
@@ -507,36 +440,6 @@ namespace Automatas
                         listaErrores.Add((lineaToken, "ERROR_INTERNO"));
                         AgregarTokenATabla("ERROR_INTERNO", 9);
                     }
-                }
-
-                if (linea.Trim() == "{")
-                {
-                    if (!string.IsNullOrEmpty(nombreFuncionActual))
-                    {
-                        dentroDeFuncion = true;
-                        tablaFunciones[nombreFuncionActual].LineaCuerpoInicio = i + 1;
-                    }
-                }
-
-                if (linea.Trim() == "}")
-                {
-                    if (dentroDeFuncion)
-                    {
-                        if (!string.IsNullOrEmpty(nombreFuncionActual)) tablaFunciones[nombreFuncionActual].LineaCuerpoFin = i + 1;
-                        dentroDeFuncion = false;
-                        nombreFuncionActual = null;
-                    }
-                }
-
-                if (esDeclaracionFuncion && linea.Contains(")"))
-                {
-                    esDeclaracionFuncion = false;
-                    tipoActual = "";
-                }
-
-                if (!esDeclaracionFuncion)
-                {
-                    tipoActual = "";
                 }
 
                 NuevaLineaTokens();
@@ -612,20 +515,6 @@ namespace Automatas
             else scintilla2.AppendText(" " + t);
 
             if (estilo >= 0) tokensTokens2.Add((ultima, columnaInicio, t, estilo));
-        }
-
-        private string ObtenerTipoDesdePR(string tokenPR)
-        {
-            switch (tokenPR)
-            {
-                case "PR23": return "ENT";
-                case "PR24": return "DEC";
-                case "PR25": return "TXT";
-                case "PR26": return "BOOL";
-                case "PR27": return "CAR";
-                case "PR28": return "VAC";
-                default: return "";
-            }
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) { }
