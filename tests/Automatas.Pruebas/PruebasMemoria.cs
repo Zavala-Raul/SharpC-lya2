@@ -128,7 +128,7 @@ internal static partial class Program
         casos.Add(invalida);
 
         var duplicada = ErrorAmbito("D08 Función duplicada no obtiene marco",
-            "FUNC ENT fUno() { ENT vA; } FUNC ENT fUno() { TXT vB; } CAR vC;",
+            "FUNC ENT fUno() { ENT vA; REGR 1; } FUNC ENT fUno() { TXT vB; REGR 1; } CAR vC;",
             "El nombre 'fUno' ya está declarado en el ámbito 'INI'.");
         duplicada.ComprobarEstado = v =>
         {

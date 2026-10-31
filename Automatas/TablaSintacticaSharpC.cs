@@ -44,7 +44,7 @@ namespace Automatas
         {
             var firstInstruccion = new List<string>
             {
-                "IDV", "PR11", "PR13", "PR15", "PR16", "PR18", "PR5", "PR6", "PR7", "PR8",
+                "IDV", "PR11", "PR13", "PR15", "PR16", "PR18", "PR4", "PR5", "PR6", "PR7", "PR8",
                 "PR9", "PR10", "PR29", "PR30", "PR31", "PR2", "PR19", "PR3", "IDF"
             };
             firstInstruccion.InsertRange(0, TiposVariable);
@@ -69,6 +69,7 @@ namespace Automatas
             tabla.Agregar("IN", "PR15", "IN06");
             tabla.Agregar("IN", "PR16", "IN07");
             tabla.Agregar("IN", "PR18", "IN08");
+            tabla.Agregar("IN", "PR4", "IN23");
             tabla.Agregar("IN", "PR5", "IN10");
             tabla.Agregar("IN", "PR6", "IN11");
             tabla.Agregar("IN", "PR7", "IN12");
@@ -127,6 +128,7 @@ namespace Automatas
 
         private static void AgregarEntradaSalidaYGraficas(TablaLl1Builder tabla)
         {
+            tabla.Agregar("IN23", "PR4", "PR4", "CE1", "IDV", "CE2", "CE8");
             tabla.Agregar("IN10", "PR5", "PR5", "CE1", "EXP", "CE2", "CE8");
             tabla.Agregar("IN11", "PR6", "PR6", "CE1", "CE2", "CE8");
             tabla.Agregar("IN12", "PR7", "PR7", "CE1", "CAD", "CE2", "CE8");

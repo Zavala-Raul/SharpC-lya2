@@ -36,6 +36,12 @@ namespace Automatas
         public Form1()
         {
             InitializeComponent();
+            foreach (DataGridView tabla in new[] { dgvTriplos, dgvNotaciones })
+                foreach (DataGridViewColumn columna in tabla.Columns)
+                {
+                    columna.SortMode = DataGridViewColumnSortMode.NotSortable;
+                    columna.MinimumWidth = 100;
+                }
             InitializeEditors();
         }
 
@@ -128,6 +134,67 @@ namespace Automatas
             tablaSimbolos.AddRange(verificador.TablaAmbitos.Simbolos.Where(s => s.Clase != "FUNCION"));
             tablaFunciones.AddRange(verificador.TablaAmbitos.Funciones);
             erroresTipos.AddRange(verificador.Errores);
+            if (erroresTipos.Count == 0)
+                MostrarCodigoIntermedio(new GeneradorCodigoIntermedio().Generar(verificador));
+        }
+
+        private void LimpiarCodigoIntermedio(string estado)
+        {
+            dgvCuadruplos.Rows.Clear();
+            dgvErroresGeneracion.Rows.Clear();
+            txtCodigoIntermedio.Clear();
+            dgvTriplos.Rows.Clear();
+            txtCodigoP.Clear();
+            dgvNotaciones.Rows.Clear();
+            dgvErroresGeneracion.Visible = false;
+        }
+
+        private void MostrarCodigoIntermedio(ResultadoCodigoIntermedio resultado)
+        {
+            LimpiarCodigoIntermedio("");
+            var vistas = ConstructorRepresentaciones.Construir(resultado);
+            if (vistas.Errores.Count != 0)
+            {
+                foreach (var error in vistas.Errores)
+                    dgvErroresGeneracion.Rows.Add(error.Linea, error.Mensaje);
+                dgvErroresGeneracion.Visible = true;
+                return;
+            }
+            var formato = new FormateadorCodigoIntermedio(resultado.Instrucciones);
+            // Todas las conversiones se preparan antes de llenar cualquier control.
+            string codigo = formato.ComoTexto();
+            string codigoP = ConstructorRepresentaciones.TextoP(vistas.CodigoP, formato);
+            txtCodigoIntermedio.Text = codigo;
+            txtCodigoP.Text = codigoP;
+            foreach (var q in resultado.Instrucciones)
+            {
+                int fila = dgvCuadruplos.Rows.Add(formato.Operando(q.Destino), formato.Operando(q.Fuente1),
+                    formato.Operando(q.Fuente2), q.Operacion);
+                foreach (DataGridViewCell celda in dgvCuadruplos.Rows[fila].Cells)
+                    celda.ToolTipText = "Línea " + q.Linea + "; tipo de resultado: " + q.TipoResultado +
+                        "; tipo de destino: " + (q.Destino?.Tipo ?? "—") +
+                        "; función: " + (q.FuncionContenedora == null ? "INI" :
+                            q.FuncionContenedora.Nombre + "#" + q.FuncionContenedora.Numero);
+            }
+            foreach (var t in vistas.Triplos)
+            {
+                int fila = dgvTriplos.Rows.Add(formato.Operando(t.Objeto), formato.Operando(t.Fuente),
+                    string.IsNullOrEmpty(t.Operador) ? "—" : t.Operador);
+                foreach (DataGridViewCell celda in dgvTriplos.Rows[fila].Cells)
+                    celda.ToolTipText = "Línea " + t.Origen.Linea + "; tipo tras esta instrucción: " + t.TipoResultado;
+            }
+            foreach (var n in vistas.Notaciones)
+            {
+                string contexto = n.Origen.Linea + " / " + n.Origen.Contexto +
+                    (n.Origen.FuncionContenedora == null ? "" : " / " + n.Origen.FuncionContenedora.Nombre);
+                dgvNotaciones.Rows.Add(contexto, n.Infija, n.Prefija, n.Postfija);
+            }
+        }
+
+        private void btnGenerarCuadruplos_Click(object sender, EventArgs e)
+        {
+            btnEjecutar_Click(sender, e);
+            tabResultados.SelectedTab = tabCodigoIntermedio;
         }
 
         private void ReAnalizarTodo()
@@ -184,6 +251,7 @@ namespace Automatas
 
         private void scintilla1_TextChanged(object sender, EventArgs e)
         {
+            LimpiarCodigoIntermedio("El código fuente cambió. Analiza de nuevo para generar cuádruplos.");
             scintilla1.StartStyling(0);
             scintilla1.SetStyling(scintilla1.TextLength, 0);
 
@@ -361,6 +429,7 @@ namespace Automatas
 
         private void btnEjecutar_Click(object sender, EventArgs e)
         {
+            LimpiarCodigoIntermedio("No se generaron cuádruplos. Revisa el código y los errores en la pestaña Análisis.");
             tokensGlobales.Clear();
             tokensTokens2.Clear();
             listaErrores.Clear();

@@ -10,11 +10,21 @@
     <Compile Include="../../Automatas/TablaAmbitos.cs" Link="Produccion/TablaAmbitos.cs" />
     <Compile Include="../../Automatas/RegionMemoria.cs" Link="Produccion/RegionMemoria.cs" />
     <Compile Include="../../Automatas/AnalizadorInicializacion.cs" Link="Produccion/AnalizadorInicializacion.cs" />
+    <Compile Include="../../Automatas/AnalizadorRetornos.cs" Link="Produccion/AnalizadorRetornos.cs" />
     <Compile Include="../../Automatas/AnalizadorSintacticoLl1.cs" Link="Produccion/AnalizadorSintacticoLl1.cs" />
     <Compile Include="../../Automatas/CatalogoTipos.cs" Link="Produccion/CatalogoTipos.cs" />
     <Compile Include="../../Automatas/TablaSintacticaSharpC.cs" Link="Produccion/TablaSintacticaSharpC.cs" />
     <Compile Include="../../Automatas/TokenizadorFuenteSharpC.cs" Link="Produccion/TokenizadorFuenteSharpC.cs" />
     <Compile Include="../../Automatas/VerificadorTipos.cs" Link="Produccion/VerificadorTipos.cs" />
+    <Compile Include="../../Automatas/OperadoresExpresion.cs" Link="Produccion/OperadoresExpresion.cs" />
+    <Compile Include="../../Automatas/Cuadruplo.cs" Link="Produccion/Cuadruplo.cs" />
+    <Compile Include="../../Automatas/ExpresionIntermedia.cs" Link="Produccion/ExpresionIntermedia.cs" />
+    <Compile Include="../../Automatas/RepresentacionesIntermedias.cs" Link="Produccion/RepresentacionesIntermedias.cs" />
+    <Compile Include="../../Automatas/GeneradorTriplos.cs" Link="Produccion/GeneradorTriplos.cs" />
+    <Compile Include="../../Automatas/GeneradorCodigoP.cs" Link="Produccion/GeneradorCodigoP.cs" />
+    <Compile Include="../../Automatas/FormateadorNotaciones.cs" Link="Produccion/FormateadorNotaciones.cs" />
+    <Compile Include="../../Automatas/FormateadorCodigoIntermedio.cs" Link="Produccion/FormateadorCodigoIntermedio.cs" />
+    <Compile Include="../../Automatas/GeneradorCodigoIntermedio.cs" Link="Produccion/GeneradorCodigoIntermedio.cs" />
     <Compile Include="../../Automatas/Simbolo.cs" Link="Produccion/Simbolo.cs" />
     <Compile Include="../../Automatas/Funcion.cs" Link="Produccion/Funcion.cs" />
   </ItemGroup>

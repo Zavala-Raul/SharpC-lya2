@@ -1,9 +1,16 @@
-# Analizador léxico, sintáctico y semántico de SharpC
+# Análisis semántico en nuestro lenguaje SharpC
 
 ## Índice
 
 1. [Introducción](#introducción)
 2. [Antecedentes](#antecedentes)
+   - [Expresiones y árboles de expresión](#expresiones-y-árboles-de-expresión)
+   - [Acciones semánticas](#acciones-semánticas)
+   - [Comprobación de tipos](#comprobación-de-tipos)
+   - [Pila semántica](#pila-semántica)
+   - [Esquemas de traducción](#esquemas-de-traducción)
+   - [Tabla de símbolos, ámbitos y direcciones](#tabla-de-símbolos-ámbitos-y-direcciones)
+   - [Manejo de errores semánticos](#manejo-de-errores-semánticos)
 3. [Aplicaciones](#aplicaciones)
 4. [Código](#código)
 5. [Resultados](#resultados)
@@ -13,342 +20,360 @@
 
 ## Introducción
 
-El proyecto **AnalizadorLexico2** analiza programas escritos en un lenguaje educativo cuya gramática se implementa en `TablaSintacticaSharpC.cs`. Su propósito es identificar los componentes del código fuente, comprobar su estructura y detectar usos que contradicen las reglas semánticas del lenguaje. Ofrece diagnósticos con número de línea y presenta declaraciones, funciones y errores en una aplicación Windows Forms.
+Escribir un programa implica más que colocar palabras y símbolos en el orden correcto. También necesitamos que las instrucciones tengan sentido: que una variable exista antes de usarla, que reciba un valor antes de leerla y que los datos sean compatibles con las operaciones que queremos realizar.
 
-El procesamiento se organiza en tres etapas. El **análisis léxico** separa el texto en lexemas y los clasifica como palabras reservadas, identificadores, números, operadores y otros tokens. El **análisis sintáctico** utiliza una tabla predictiva LL(1) para comprobar si los tokens siguen las producciones de la gramática. Cuando la sintaxis es válida, el **análisis semántico** construye ámbitos, resuelve identificadores, infiere tipos, asigna desplazamientos simbólicos y verifica inicialización, llamadas y retornos.
+Nuestro proyecto es un analizador de **SharpC**, un lenguaje educativo. Revisa el código y presenta información sobre sus variables, funciones y errores. Su objetivo es mostrar cómo se estudia un programa antes de ejecutarlo.
 
-Una expresión puede ser sintácticamente correcta y, aun así, tener un error semántico. Por ejemplo, `ENT vEdad = "hola";` respeta la estructura de una declaración, pero intenta asignar texto (`TXT`) a una variable entera (`ENT`). Esta diferencia entre *forma* y *significado* es el eje del proyecto.
+Pensemos en esta instrucción:
 
-El sistema realiza **análisis estático**: no ejecuta las instrucciones del programa analizado, no calcula los resultados numéricos de las expresiones y no reserva memoria física para sus variables.
+```text
+ENT vEdad = "hola";
+```
 
-Los bloques `mermaid` de este documento pueden copiarse a [Mermaid Live](https://mermaid.live/) para editarlos o exportarlos. Son diagramas de flujo y de expresión del analizador; no sustituyen el diagrama esquemático de otra materia.
+Su forma es correcta: tiene un tipo, un nombre, una asignación y un punto y coma. Sin embargo, intenta guardar texto en una variable entera. **Está bien escrita en su estructura, pero tiene un error de significado.** A ese tipo de revisión se le llama *análisis semántico*.
+
+En esta presentación explicamos los conceptos con ejemplos de nuestro lenguaje. El analizador revisa los programas; todavía no los ejecuta ni calcula sus resultados numéricos.
+
+Los ejemplos breves son fragmentos independientes que se colocan dentro de `INI { ... }`. En la sección **Código** aparece un programa completo explicado paso a paso.
 
 ## Antecedentes
 
-### Del autómata al reconocimiento de la gramática
+Los compiladores traducen programas a otra representación. Para hacerlo, necesitan reconocer sus elementos, entender su estructura y comprobar sus reglas. Nuestro proyecto trabaja con esas etapas de análisis.
 
-Un compilador o analizador de lenguaje necesita convertir una secuencia de caracteres en unidades reconocibles. En este proyecto, `TokenizadorFuenteSharpC.cs` separa los lexemas y `AnalizadorLexico.cs` consulta una matriz de transiciones cargada desde SQLite para clasificarlos. La salida léxica alimenta el análisis sintáctico.
-
-Las producciones de la gramática se registran en `TablaSintacticaSharpC.cs`. `AnalizadorSintacticoLl1.cs` emplea una **pila de símbolos pendientes** y una tabla de decisión: usa el símbolo en la cima y el token siguiente para elegir una producción. La jerarquía aritmética distingue valores agrupados, potencias, multiplicaciones/divisiones y sumas/restas; las potencias encadenadas se agrupan hacia la derecha.
-
-### Árbol de expresión conceptual
-
-En `2 + 3 * 4`, la multiplicación pertenece al término derecho de la suma. Este árbol **ilustra la agrupación de la gramática**; el programa no crea nodos de árbol en memoria. `TablaSintacticaSharpC.AgregarNivelesAritmeticos` define los niveles y `AnalizadorSintacticoLl1.Analizar` reconoce la secuencia con su pila LL(1).
+| Etapa | Pregunta que responde | Ejemplo |
+| --- | --- | --- |
+| Análisis léxico | ¿Qué elementos aparecen en el texto? | Reconoce `ENT`, `vEdad`, `=`, `18` y `;`. |
+| Análisis sintáctico | ¿Están organizados de una forma permitida? | Comprueba que la declaración tenga la estructura adecuada. |
+| Análisis semántico | ¿Se utilizan de manera coherente? | Comprueba que el valor asignado sea compatible con `ENT`. |
 
 ```mermaid
 flowchart TD
-    R["TablaSintacticaSharpC.AgregarNivelesAritmeticos<br/>EXP → TERM EXP_P; TERM → POT TERM_P"] -.-> S["EXP: suma (+)"]
-    S --> V2["VALOR: 2"]
-    S --> M["TERM: producto (*)"]
-    M --> V3["VALOR: 3"]
-    M --> V4["VALOR: 4"]
+    A["Código escrito por el usuario"] --> B["Reconocer palabras, números y símbolos"]
+    B --> C["Revisar la estructura de las instrucciones"]
+    C --> D["Comprobar tipos, nombres y uso de variables"]
+    D --> E["Mostrar información y errores encontrados"]
 ```
 
-Así se interpreta `2 + (3 * 4)`. `VerificadorTipos.EvaluarTipoExpresion` conserva esa prioridad para inferir el tipo, sin construir ni evaluar este árbol.
+El diagrama representa el recorrido de un programa que supera las primeras revisiones. Si hay errores léxicos o sintácticos, primero deben corregirse para pasar a la revisión semántica.
 
-### Significado, ámbitos y atributos
+### Expresiones y árboles de expresión
 
-La [lectura sobre la pila semántica](#bibliografía) describe el seguimiento de tipos y resultados parciales. El proyecto utiliza `pilaTipos` y `pilaOps` en `VerificadorTipos.EvaluarTipoExpresion`: una pila guarda **tipos** y la otra operadores; no almacena el resultado numérico de `2 + 3`.
+**¿Qué es una expresión?** Es una combinación de valores, variables y operadores. Por ejemplo, `2 + 3 * 4` es una expresión aritmética.
 
-El [material sobre esquemas de traducción](#bibliografía) relaciona reglas gramaticales con acciones que calculan atributos. Aquí esa relación se documenta conceptualmente: primero se acepta la sintaxis y después se recorren los tokens para calcular atributos de símbolos y expresiones. El analizador LL(1) **no construye un árbol sintáctico** ni ejecuta acciones incrustadas en las producciones. La correspondencia entre reglas y métodos se desarrolla en [Acciones semánticas asociadas a la gramática](esquema-traduccion-semantica.md).
+Un **árbol de expresión** muestra cómo se agrupan sus partes. Los operadores se representan como nodos y los valores como hojas. Sirve para entender qué operaciones dependen de otras.
 
-**Esquema de traducción conceptual para una declaración (tema 1.5).** La producción `IN02` admite una variable con asignación opcional. Los atributos se obtienen mediante pasadas posteriores, no mediante fragmentos de código insertados en la tabla LL(1).
+En nuestro lenguaje podemos escribir:
+
+```text
+ENT vTotal = 2 + 3 * 4;
+```
+
+La multiplicación tiene prioridad sobre la suma. Por eso la expresión se agrupa como `2 + (3 * 4)`:
 
 ```mermaid
-flowchart LR
-    G["TablaSintacticaSharpC.AgregarDeclaracionesYAsignaciones<br/>IN02 → TIPO_VAR IDV ASIG_OPC CE8"] --> LL["AnalizadorSintacticoLl1.Analizar<br/>aceptar la producción"]
-    LL --> REG["TablaAmbitos.Recorrer y RegistrarDeclaraciones<br/>Simbolo.Tipo, Ambito y línea"]
-    REG --> MEM["TablaAmbitos.CalcularDisposicion<br/>Simbolo.Region, tamaño y offset"]
-    MEM --> RES["TablaAmbitos.ResolverReferencias<br/>SimbolosPorToken"]
-    RES --> Q{"¿ASIG_OPC contiene expresión?"}
-    Q -->|Sí| VT["VerificadorTipos.VerificarAsignacion<br/>inferir EXP y comprobar compatibilidad"]
-    Q -->|No| FIN["Declaración registrada sin Valor asignado"]
+flowchart TD
+    S["Sumar (+)"] --> A["2"]
+    S --> M["Multiplicar (*)"]
+    M --> B["3"]
+    M --> C["4"]
 ```
 
-Los [temas 1.6 y 1.7](#bibliografía) justifican la tabla de símbolos, el alcance, las direcciones y el tratamiento de errores. `TablaAmbitos` relaciona cada uso de un nombre con una declaración concreta; `RegionMemoria` asigna tamaños y desplazamientos relativos a variables y parámetros; `AnalizadorInicializacion` identifica lecturas antes de una asignación definida. La [matriz de cobertura 1.6/1.7](cobertura-errores-1.6-1.7.md) distingue los errores comprobados de los que dependen de una futura ejecución.
+Si escribimos `(2 + 3) * 4`, los paréntesis cambian la agrupación: primero queda la suma dentro del grupo y después la multiplicación.
+
+**En nuestro proyecto:** se respeta esta prioridad al revisar las expresiones. El árbol es una ilustración para explicarla; el reconocedor sintáctico no construye árboles. La fase posterior de código intermedio sí estructura las expresiones aritméticas soportadas para producir cuádruplos, sin mostrar el árbol en pantalla.
+
+### Acciones semánticas
+
+**¿Qué son?** Son las tareas que se realizan para comprobar o registrar el significado de una instrucción.
+
+Por ejemplo, al encontrar:
+
+```text
+ENT vCantidad = 5;
+```
+
+el analizador necesita:
+
+1. Reconocer que se está declarando una variable llamada `vCantidad`.
+2. Registrar que su tipo es entero.
+3. Comprobar que el nombre no esté repetido donde se declara.
+4. Comprobar que `5` sea compatible con el tipo entero.
+
+**¿Para qué sirven?** Conectan lo que está escrito con las reglas del lenguaje. Reconocer una declaración no basta: también hay que comprobar que pueda utilizarse correctamente.
+
+### Comprobación de tipos
+
+**¿Qué es un tipo de dato?** Es una categoría que indica qué clase de información puede representar un dato y qué operaciones se permiten con él.
+
+Los tipos de nuestro lenguaje son:
+
+| Tipo | Significado | Ejemplo de uso |
+| --- | --- | --- |
+| `ENT` | Número entero. | `ENT vCantidad = 5;` |
+| `DEC` | Número que permite parte decimal. | `DEC vPrecio = 12.5;` |
+| `TXT` | Cadena de texto. | `TXT vNombre = "Ana";` |
+| `CAR` | Un carácter. | `CAR vGrupo = 'A';` |
+| `BOOL` | Valor lógico: verdadero o falso. | `BOOL vActivo = VDD;` |
+| `VAC` | Ausencia de valor de retorno en una función. | Se utiliza después de `FUNC`, no para declarar variables. |
+
+`VDD` significa verdadero y `FALS`, falso.
+
+La **comprobación de tipos** determina si los datos pueden combinarse o asignarse de la manera indicada. Los siguientes fragmentos se colocarían dentro de `INI { ... }`:
+
+```text
+DEC vPrecio = 10;
+ENT vCantidad = 10.5;
+```
+
+La primera declaración es válida: un entero puede utilizarse donde se espera un decimal. Esta conversión permitida se llama **promoción de tipos**. La segunda se rechaza porque nuestro lenguaje no permite convertir automáticamente un decimal en entero.
+
+También se revisan los operadores. `"hola" * 2` es incompatible, mientras que `"Total: " + 2` se admite como concatenación de texto.
+
+### Pila semántica
+
+**¿Qué es una pila?** Es una estructura parecida a una pila de platos: el último que se coloca es el primero que se retira.
+
+La **pila semántica** conserva información temporal mientras se analiza una expresión. En nuestro proyecto guarda los tipos de los datos y de los resultados parciales. Otra pila ayuda a recordar los operadores pendientes.
+
+Consideremos:
+
+```text
+DEC vResultado = 2 + 3 * 4.5;
+```
+
+La revisión puede explicarse así:
+
+| Paso | Comprobación | Tipo obtenido |
+| --- | --- | --- |
+| 1 | Identificar `2`, `3` y `4.5`. | `ENT`, `ENT` y `DEC`. |
+| 2 | Combinar los tipos de `3 * 4.5`. | `ENT * DEC` produce `DEC`. |
+| 3 | Combinar `2` con el resultado anterior. | `ENT + DEC` produce `DEC`. |
+| 4 | Comparar el resultado con el tipo de `vResultado`. | La asignación es compatible. |
+
+**Idea principal:** para saber si la asignación es válida basta con conocer el tipo del resultado. El analizador no necesita calcular cuánto vale la operación.
+
+### Esquemas de traducción
+
+**¿Qué son?** Son una forma de asociar reglas de la gramática con acciones que producen información. Esa información puede ser un tipo, una entrada en una tabla, una traducción o instrucciones para una etapa posterior.
+
+Una regla describe, por ejemplo, la forma de una declaración:
+
+> Tipo + nombre + asignación opcional + punto y coma.
+
+Las acciones asociadas explican qué hacer con esa declaración. Para `ENT vCantidad = 5;`, se registra el nombre, se identifica su tipo y se comprueba la asignación.
+
+```mermaid
+flowchart TD
+    A["Reconocer una declaración"] --> B["Registrar nombre y tipo"]
+    B --> C["Comprobar el valor asignado"]
+    C --> D{"¿Es compatible?"}
+    D -->|Sí| E["Conservar la información de la variable"]
+    D -->|No| F["Informar un error de tipo"]
+```
+
+**En nuestro proyecto:** esta idea ayuda a explicar la relación entre gramática y semántica. Las comprobaciones se realizan después de aceptar la estructura del programa. Todavía no se genera código de máquina ni una traducción ejecutable.
+
+### Tabla de símbolos, ámbitos y direcciones
+
+**¿Qué es la tabla de símbolos?** Es un registro de los nombres declarados en el programa. Puede compararse con una lista de alumnos: el nombre identifica una entrada y las demás columnas guardan información sobre ella.
+
+Para una variable, nos interesa conocer su nombre, tipo, lugar de declaración y ubicación simbólica. Por ejemplo:
+
+```text
+INI {
+    ENT vCantidad = 2;
+    DEC vPrecio = 3.5;
+}
+```
+
+| Nombre | Tipo | Ámbito |
+| --- | --- | --- |
+| `vCantidad` | `ENT` | Principal (`INI`). |
+| `vPrecio` | `DEC` | Principal (`INI`). |
+
+**¿Qué es el ámbito?** Es la parte del programa donde se puede usar un nombre. Una variable de un bloque interior no queda disponible automáticamente fuera de él.
+
+```text
+INI {
+    SI (VDD) {
+        ENT vTemporal = 5;
+        IMP(vTemporal);
+    }
+    IMP(vTemporal);
+}
+```
+
+El primer `IMP(vTemporal);` usa una variable visible en ese bloque. El segundo produce un error porque está fuera de su ámbito. `IMP` representa una instrucción de impresión; aquí se revisa su uso, no se ejecuta la impresión.
+
+En nuestro lenguaje se aplican estas reglas:
+
+- Una variable debe declararse antes de utilizarse, incluso si declaración y uso están en la misma línea.
+- No se puede declarar dos veces el mismo nombre en un ámbito.
+- Un bloque interior no puede repetir un nombre declarado en un ámbito que lo contiene. A esa repetición se le llama **sombreado** y el proyecto la rechaza.
+- Dos bloques separados que comparten un mismo contenedor pueden tener variables con el mismo nombre, siempre que no repitan el de un antecesor. Son declaraciones independientes.
+- Los parámetros de una función pertenecen al ámbito de esa función.
+
+**¿Qué son las direcciones?** Indican dónde se localizaría cada dato. Nuestro proyecto utiliza un modelo sencillo de **memoria simbólica**: una región para `INI` y otra por función.
+
+Un **desplazamiento** indica a cuántos bytes del inicio de una región comienza una variable. En el ejemplo de `vCantidad` y `vPrecio`:
+
+| Variable | Región | Tamaño | Desplazamiento |
+| --- | --- | ---: | ---: |
+| `vCantidad` | `INI` | 4 bytes | 0 |
+| `vPrecio` | `INI` | 8 bytes | 4 |
+
+La primera variable ocupa 4 bytes; por eso la siguiente comienza en 4. La región necesita 12 bytes simbólicos en total. No son direcciones reales de la computadora, sino una representación para estudiar la organización de los datos.
+
+### Manejo de errores semánticos
+
+**¿Qué son?** Son errores en el uso de las construcciones del lenguaje, aunque la estructura de la instrucción sea aceptada.
+
+El documento del tema 1.7 los agrupa en inicialización, tipos de datos, lógica, alcance y recursos. En nuestro proyecto se observan de esta forma:
+
+| Categoría | Ejemplo | ¿Qué se revisa? |
+| --- | --- | --- |
+| Inicialización | `ENT vEdad; IMP(vEdad);` | La variable existe, pero se lee antes de recibir un valor. |
+| Tipos de datos | `ENT vEdad = "hola";` | El texto no es compatible con el tipo entero. |
+| Lógica y condiciones | `SI (5) { }` | La condición debe producir un valor lógico, no un entero. |
+| Alcance | Usar `vTemporal` fuera del bloque donde se declaró. | El nombre debe estar disponible en ese lugar. |
+| Recursos | La suma de tamaños supera el límite de una región. | El contador de memoria simbólica debe permanecer dentro de su rango. |
+
+También se comprueba que una llamada tenga la cantidad y los tipos de argumentos requeridos, y que cada `REGR` presente corresponda al retorno declarado de su función.
+
+**Declarar no es lo mismo que inicializar.** `ENT vEdad;` crea una variable, pero todavía no le asigna un valor. `vEdad = 18;` le asigna uno. Además, si la asignación aparece únicamente dentro de un `SI` sin `SINO`, después del bloque podría seguir sin valor: no sabemos si esa rama se ejecutará.
+
+**¿Cómo se tratan los errores?** Se informa el problema y su línea, y se continúa con las comprobaciones que sea posible realizar. Así el usuario puede corregir varios problemas en una misma revisión.
+
+Que una comparación sea válida no demuestra que resuelva el problema deseado. Por ejemplo, el analizador puede aceptar `vEdad > 18`, pero no sabe si el autor quería escribir `vEdad >= 18`. Esa intención debe comprobarse al diseñar y probar el programa.
 
 ## Aplicaciones
 
-1. **Revisión de programas educativos.** Permite detectar errores léxicos, estructuras incompletas, asignaciones incompatibles y condiciones que no producen `BOOL` antes de intentar ejecutar el código.
-2. **Consulta de declaraciones y ámbitos.** Ayuda a explicar por qué una variable es visible en un bloque y no en otro, por qué no se admite el sombreado y cómo dos bloques hermanos pueden tener declaraciones homónimas diferentes.
-3. **Comprobación de funciones.** Valida la cantidad y los tipos de los argumentos, así como el tipo de cada `REGR` presente; admite la promoción `ENT → DEC` definida por el lenguaje.
-4. **Estudio de direcciones simbólicas.** Muestra una región `INI` y marcos independientes por función, con tamaño y desplazamiento por declaración. Esto permite estudiar la disposición de memoria sin representar direcciones reales del sistema operativo.
-5. **Demostración de análisis por etapas.** El formulario permite comparar tokens, errores y tablas de símbolos y funciones; las pruebas automatizadas permiten reproducir casos de aceptación y rechazo.
+- **Aprender cómo se analiza un lenguaje:** observar la diferencia entre reconocer palabras, revisar estructuras y comprobar su significado.
+- **Detectar errores antes de ejecutar:** localizar variables inexistentes, datos incompatibles o lecturas sin inicialización.
+- **Comprender el alcance de las variables:** explicar por qué un nombre se puede usar en un bloque y no en otro.
+- **Estudiar la organización de los datos:** consultar tamaños y ubicaciones simbólicas en la tabla de símbolos.
+- **Practicar con funciones:** comprobar qué datos recibe una función y qué tipo de dato debe devolver.
 
 ## Código
 
-Los siguientes fragmentos proceden de las clases del proyecto. Se seleccionaron para mostrar cómo se conectan las etapas sin reproducir todos los archivos fuente.
+### Un programa que reúne los conceptos
 
-### Análisis sintáctico y semántico
+El siguiente ejemplo está escrito en **nuestro lenguaje**. Usa variables, una expresión, una función y una llamada:
 
-Después de aceptar la sintaxis, `Form1.cs` invoca el verificador y utiliza sus declaraciones para llenar las tablas de la interfaz:
+```text
+INI {
+    ENT vCantidad = 2;
+    DEC vPrecio = 3.5;
+    DEC vSubtotal = vCantidad * vPrecio;
 
-```mermaid
-flowchart TD
-    A["Form1.btnEjecutar_Click<br/>tokensSintactico"] --> B{"¿Hay errores léxicos o faltan tokens?"}
-    B -->|Sí| L["Form1.LlenarDgvErrores<br/>no iniciar sintaxis"]
-    B -->|No| C["Form1.EjecutarAnalisisSintactico"]
-    C --> D["AnalizadorSintacticoLl1.Analizar<br/>tabla de TablaSintacticaSharpC.CrearTablaCompleta"]
-    D --> E{"¿Hay errores sintácticos?"}
-    E -->|Sí| F["Form1.LlenarDgvErroresSintaxis"]
-    E -->|No| G["Form1.EjecutarVerificacionTipos"]
-    G --> H["VerificadorTipos.Verificar<br/>TablaAmbitos y validaciones"]
-    H --> I["Form1.LlenarTablaSimbolos<br/>Form1.LlenarTablaFunciones"]
-    H --> J["Form1.LlenarDgvErroresSintaxis<br/>mostrar errores semánticos"]
+    FUNC DEC fAgregarCargo(DEC vImporte) {
+        REGR vImporte + 1;
+    }
+
+    DEC vTotal = fAgregarCargo(vSubtotal);
+    IMP(vTotal);
+}
 ```
 
-Las tablas semánticas se **llenan** únicamente después de aceptar la sintaxis. Los métodos de presentación también se invocan al final del análisis cuando las tablas están vacías.
+**¿Cómo se lee?**
 
-```csharp
-var verificador = new VerificadorTipos(null);
-verificador.Verificar(tokensSintactico);
-tablaSimbolos.AddRange(verificador.TablaAmbitos.Simbolos
-    .Where(s => s.Clase != "FUNCION"));
-tablaFunciones.AddRange(verificador.TablaAmbitos.Funciones);
-erroresTipos.AddRange(verificador.Errores);
+1. `INI` marca el bloque principal.
+2. `vCantidad` guarda un entero y `vPrecio`, un decimal.
+3. `vCantidad * vPrecio` produce una expresión de tipo decimal, compatible con `vSubtotal`.
+4. `FUNC` declara `fAgregarCargo`, una función que recibe un decimal llamado `vImporte` y tiene retorno decimal.
+5. `REGR` indica qué expresión devolvería la función. `vImporte + 1` es compatible con `DEC`.
+6. La llamada entrega `vSubtotal` como argumento y su resultado es de tipo `DEC`, compatible con `vTotal`.
+7. `IMP(vTotal);` solicita mostrar el valor cuando el lenguaje disponga de ejecución.
+
+**¿Qué hace el analizador con él?** Revisa nombres, tipos, ámbitos, asignaciones y uso de la función. Registra las declaraciones y sus ubicaciones simbólicas. No realiza la multiplicación ni ejecuta la llamada.
+
+### Un cambio que produce un error
+
+Si sustituimos la llamada anterior por:
+
+```text
+DEC vTotal = fAgregarCargo("hola");
 ```
 
-La llamada se realiza únicamente cuando el análisis léxico no ha registrado errores y el sintáctico no ha encontrado errores. Las tablas léxicas de identificadores y las declaraciones semánticas se mantienen separadas.
-
-### Resolución de nombres y tipos
-
-`TablaAmbitos.cs` busca el símbolo visible **en la posición del token**, no solo por el texto de su nombre. Así se diferencia un uso de una declaración posterior incluso si ambos están en la misma línea:
-
-```csharp
-Simbolo simbolo = AmbitosPorToken[i]
-    .BuscarVisibleEnPosicion(token.Valor, i);
-SimbolosPorToken[i] = simbolo;
-```
-
-**Construcción de ámbitos y direcciones (temas 1.6 y 1.7).** El constructor de `TablaAmbitos` ejecuta las fases en este orden. Una declaración rechazada genera un error, pero no impide procesar las otras; la memoria se calcula antes de resolver las referencias.
-
-```mermaid
-flowchart TD
-    T["VerificadorTipos.Verificar"] --> C["new TablaAmbitos(tokens, tablaFunciones.Values)"]
-    C --> P["TablaAmbitos.EmparejarDelimitadores"]
-    P --> R["TablaAmbitos.Recorrer<br/>crear Ambito y recoger declaraciones"]
-    R --> D["TablaAmbitos.RegistrarDeclaraciones<br/>Ambito.IntentarDeclarar"]
-    D -->|duplicado o sombreado| EA["TablaAmbitos.Errores<br/>ERROR DE ÁMBITO"]
-    D --> M["TablaAmbitos.CalcularDisposicion"]
-    M --> CT["CatalogoTipos.ObtenerTamanoBytes"]
-    CT -->|tipo sin tamaño de variable válido| EM["TablaAmbitos.Errores<br/>ERROR DE MEMORIA"]
-    CT --> RM["RegionMemoria.Reservar<br/>offset y suma checked"]
-    RM -->|desbordamiento| EM
-    M --> RF["TablaAmbitos.ResolverReferencias"]
-    RF --> BV["Ambito.BuscarVisibleEnPosicion"]
-    BV -->|visible| OK["TablaAmbitos.SimbolosPorToken[i]"]
-    BV -->|uso antes de declarar| EA
-    BV -->|nombre inexistente| EN["TablaAmbitos.Errores<br/>ERROR DE TIPO"]
-```
-
-`Simbolo.Region` y `Simbolo.DesplazamientoBytes` describen una dirección relativa; el diagrama no representa una dirección física ni generación de código de acceso.
-
-`VerificadorTipos.cs` permite asignar expresiones del mismo tipo y promocionar `ENT` a `DEC`:
-
-```csharp
-if (tipoVariable == tipoExpresion) return true;
-if (tipoVariable == "DEC" && tipoExpresion == "ENT") return true;
-return false;
-```
-
-Además de las asignaciones, se comprueban las operaciones, los argumentos de las llamadas y los retornos. Si una referencia no se resuelve, el tipo `ERROR` se propaga para evitar diagnósticos incompatibles derivados del mismo problema.
-
-**Inferencia de una expresión (tema 1.4).** `pilaTipos` recibe los tipos reconocidos; `pilaOps` retiene operadores hasta que la precedencia o un paréntesis exige combinarlos. Las llamadas `IDF(...)` se procesan recursivamente y se detallan en el diagrama de llamadas posterior.
-
-```mermaid
-sequenceDiagram
-    participant E as VerificadorTipos.EvaluarTipoExpresion
-    participant O as VerificadorTipos.ObtenerTipoOperando
-    participant C as CatalogoTipos.EsLiteralEnteroEnRango
-    participant A as VerificadorTipos.AplicarOperador
-    participant V as VerificadorTipos.EvaluarOperacion
-    loop Tokens de la expresión
-        alt Operando CNU entero
-            E->>O: ObtenerTipoOperando(CNU, lexema, línea)
-            O->>C: Comprobar rango ENT
-            C-->>O: Dentro o fuera de rango
-            O-->>E: ENT o ERROR
-            E->>E: pilaTipos.Push(tipo)
-        else Otro operando: CNU decimal, IDV, CAD, CAR, BOOL
-            E->>O: ObtenerTipoOperando(tipo, lexema, línea)
-            O-->>E: Tipo del literal o símbolo visible
-            E->>E: pilaTipos.Push(tipo)
-        else Operador o paréntesis
-            opt Reducir por precedencia o cierre de paréntesis
-                E->>A: AplicarOperador
-                opt Operador binario
-                    A->>V: EvaluarOperacion(tipoIzq, op, tipoDer, línea)
-                    V-->>A: Tipo resultante o ERROR
-                end
-                A-->>E: pilaTipos.Push(resultado)
-            end
-            E->>E: Actualizar pilaOps según precedencia
-        end
-    end
-    opt Al finalizar quedan operadores pendientes
-        E->>A: AplicarOperador por cada operador
-        opt Operador binario
-            A->>V: EvaluarOperacion(tipoIzq, op, tipoDer, línea)
-            V-->>A: Tipo resultante o ERROR
-        end
-        A-->>E: pilaTipos.Push(resultado)
-    end
-    E-->>E: Devolver tipo final
-```
-
-Una negación `!` se resuelve directamente en `AplicarOperador`; una suma, comparación o operación lógica binaria llega a `EvaluarOperacion`. Si un operando ya es `ERROR`, se propaga sin inventar una incompatibilidad adicional.
-
-**Llamadas y retornos (tema 1.7).** Las expresiones usadas como argumentos se infieren antes de cotejarlas con la firma. Para `REGR`, se busca la función contenedora más cercana, incluso si hay funciones anidadas.
-
-```mermaid
-flowchart TD
-    CALL["VerificadorTipos.EvaluarTipoExpresion<br/>encuentra IDF(...)"] --> FIRMA["TablaAmbitos.ObtenerFuncion<br/>firma del símbolo resuelto"]
-    FIRMA --> ARG["VerificadorTipos.EvaluarTipoExpresion<br/>inferir cada argumento"]
-    ARG --> COMP{"¿Cantidad y tipos compatibles?<br/>VerificadorTipos.SonCompatiblesAsignacion"}
-    COMP -->|Sí| TIPO["Apilar tipo de retorno de la función"]
-    COMP -->|No| ERR["VerificadorTipos.Errores<br/>ERROR DE TIPO"]
-    RET["VerificadorTipos.Verificar<br/>encuentra PR3: REGR"] --> CONT["TablaAmbitos.ObtenerFuncionContenedora"]
-    CONT -->|sin función| ERR
-    CONT -->|función contenedora| VR["VerificadorTipos.VerificarRetorno"]
-    VR --> VAL{"¿VAC sin expresión o<br/>tipo de expresión compatible?"}
-    VAL -->|Sí| CORRECTO["Retorno válido en esa instrucción"]
-    VAL -->|No| ERR
-```
-
-Una llamada sin declaración se informa antes en `TablaAmbitos.ResolverReferencias`. La comprobación de cada `REGR` presente no demuestra que **todos los caminos** de una función no `VAC` retornen.
-
-### Direcciones e inicialización
-
-`RegionMemoria.cs` suma tamaños mediante `checked`. El desplazamiento se fija **antes** de aumentar el total de la región:
-
-```csharp
-int siguiente = checked(TamanoBytes + tamanoBytes);
-simbolo.Region = this;
-simbolo.DesplazamientoBytes = TamanoBytes;
-simbolo.TamanoBytes = tamanoBytes;
-simbolos.Add(simbolo);
-TamanoBytes = siguiente;
-```
-
-`AnalizadorInicializacion.cs` mantiene conjuntos de símbolos inicializados. Cuando termina un `SI` con `SINO`, conserva únicamente los símbolos inicializados en ambas ramas. En `MIENT` o en el cuerpo de `POR` no supone que el cuerpo se ejecute alguna vez; el cuerpo de `REPT` se considera ejecutado al menos una vez.
-
-**Inicialización definida (tema 1.7).** Esta fase ocurre al final de `VerificadorTipos.Verificar`, después de la resolución de nombres y de la comprobación de tipos. Un identificador sin símbolo ya fue informado por `TablaAmbitos` y no produce otro error por inicialización.
-
-```mermaid
-flowchart TD
-    VT["VerificadorTipos.Verificar"] --> AI["AnalizadorInicializacion: constructor"]
-    AI --> R["AnalizadorInicializacion.Recorrer<br/>HashSet de símbolos inicializados"]
-    R --> Q{"¿Construcción encontrada?"}
-    Q -->|Asignación| AS["AnalizadorInicializacion.Asignar<br/>Leer expresión; después añadir destino"]
-    Q -->|SI / SINO o ENCASO| BR["AnalizadorInicializacion.Recorrer<br/>cada rama con copia del estado"]
-    BR --> MERGE["AnalizadorInicializacion.UnirRamas / IntersectWith<br/>conservar inicializaciones comunes"]
-    Q -->|MIENT o POR| LP["AnalizadorInicializacion.Recorrer<br/>cuerpo en copia; conservar init. de POR"]
-    Q -->|REPT| RE["AnalizadorInicializacion.Recorrer<br/>cuerpo al menos una vez; Leer HASTA"]
-    AS --> READ["AnalizadorInicializacion.Leer<br/>consultar TablaAmbitos.SimbolosPorToken"]
-    MERGE --> READ
-    LP --> READ
-    RE --> READ
-    READ --> READY{"¿Símbolo resuelto e inicializado?"}
-    READY -->|Sí| NEXT["Continuar recorrido"]
-    READY -->|No: símbolo resuelto sin valor| ERR["ERROR DE INICIALIZACIÓN<br/>línea del uso"]
-    READY -->|Sin símbolo| SCOPE["TablaAmbitos ya informó el error de nombre"]
-```
-
-El estado de las ramas es conservador: no se evalúan constantes para descartar caminos imposibles ni se elimina código inalcanzable después de `REGR`.
-
-**Archivos de referencia:** [`Automatas/AnalizadorLexico.cs`](../Automatas/AnalizadorLexico.cs), [`Automatas/TablaSintacticaSharpC.cs`](../Automatas/TablaSintacticaSharpC.cs), [`Automatas/AnalizadorSintacticoLl1.cs`](../Automatas/AnalizadorSintacticoLl1.cs), [`Automatas/TablaAmbitos.cs`](../Automatas/TablaAmbitos.cs), [`Automatas/VerificadorTipos.cs`](../Automatas/VerificadorTipos.cs), [`Automatas/RegionMemoria.cs`](../Automatas/RegionMemoria.cs) y [`Automatas/AnalizadorInicializacion.cs`](../Automatas/AnalizadorInicializacion.cs).
+la forma de la llamada sigue siendo válida, pero el argumento es texto. Como la función espera un decimal, se informa un error de tipo. Este ejemplo muestra por qué la revisión sintáctica y la semántica se complementan.
 
 ## Resultados
 
-### Ejemplo de programa válido
+### Información que presenta la aplicación
 
-```text
-INI {
-    ENT vA = 2;
-    DEC vB = vA + 3.5;
-    FUNC DEC fSuma(DEC vDato) {
-        REGR vDato + 1;
-    }
-    DEC vC = fSuma(vB);
-}
-```
+Al analizar un programa, se pueden consultar:
 
-`vA` ocupa 4 bytes simbólicos desde el desplazamiento 0 de `INI`; `vB` ocupa 8 desde el desplazamiento 4 y `vC` otros 8 desde el desplazamiento 12. El total de `INI` es **20 bytes simbólicos**. `fSuma` tiene su propia región: el parámetro `vDato` comienza en 0 y su marco tiene 8 bytes. La expresión `vA + 3.5` es de tipo `DEC`; el analizador almacena el **texto** de la expresión, no el resultado calculado `5.5`.
+- **Tokens:** las categorías de los elementos reconocidos en el texto.
+- **Tabla de símbolos:** nombre, tipo, texto de valor, ámbito, clase de símbolo, línea de declaración, región, tamaño y desplazamiento.
+- **Tabla de funciones:** nombre, retorno, parámetros, líneas del cuerpo, región y tamaño del marco.
+- **Errores:** el problema encontrado y el número de línea donde se detectó.
 
-### Ejemplo de errores detectables
+En el programa del apartado anterior, las variables principales pertenecen a `INI`, mientras que `vImporte` pertenece a `fAgregarCargo`. Sus regiones simbólicas son independientes.
 
-```text
-INI {
-    ENT vSinValor;
-    IMP(vSinValor);
-    FUNC ENT fUno(ENT vDato) { REGR vDato; }
-    ENT vResultado = fUno("texto");
-}
-```
+| Declaración | Región | Tamaño | Desplazamiento |
+| --- | --- | ---: | ---: |
+| `vCantidad` | Principal | 4 bytes | 0 |
+| `vPrecio` | Principal | 8 bytes | 4 |
+| `vSubtotal` | Principal | 8 bytes | 12 |
+| `vTotal` | Principal | 8 bytes | 20 |
+| `vImporte` | Función `fAgregarCargo` | 8 bytes | 0 |
 
-En la línea 3 se informa **`ERROR DE INICIALIZACIÓN`** por leer `vSinValor` sin valor asignado. En la línea 5 se informa **`ERROR DE TIPO`** porque el primer argumento de `fUno` debe ser `ENT` y se recibió `TXT`. El número de línea acompaña a cada diagnóstico; en la interfaz los errores semánticos se agregan a `dgvErroresSintaxis`.
+La región principal ocupa **28 bytes simbólicos** y el marco de la función, **8 bytes**. El desplazamiento 0 puede aparecer en ambas regiones porque son espacios independientes.
 
-**Acumulación y presentación de errores semánticos (tema 1.7).** Cada categoría tiene una fuente concreta. `VerificadorTipos.Verificar` incorpora primero los errores de `TablaAmbitos`, registra los de literales y tipos durante su recorrido y al final agrega los de `AnalizadorInicializacion`.
+En la columna de valor se conserva el texto de la expresión, por ejemplo `vCantidad * vPrecio`. No debe interpretarse como el resultado calculado durante una ejecución.
 
-```mermaid
-flowchart TD
-    AB["TablaAmbitos.RegistrarDeclaraciones<br/>TablaAmbitos.ResolverReferencias"] -->|ERROR DE ÁMBITO o ERROR DE TIPO por nombre inexistente| TE["TablaAmbitos.Errores"]
-    MB["TablaAmbitos.CalcularDisposicion<br/>RegionMemoria.Reservar"] -->|ERROR DE MEMORIA| TE
-    TE --> ADD["VerificadorTipos.Verificar<br/>Errores.AddRange(TablaAmbitos.Errores)"]
-    NUM["VerificadorTipos.ObtenerTipoOperando<br/>CatalogoTipos: rango de ENT"] -->|ERROR DE TIPO| LISTA["VerificadorTipos.Errores"]
-    TIPO["VerificadorTipos.EvaluarTipoExpresion / EvaluarOperacion<br/>VerificarAsignacion / VerificarCondicion / VerificarRetorno"] -->|ERROR DE TIPO| LISTA
-    ADD --> LISTA
-    INIT["AnalizadorInicializacion.Leer<br/>ERROR DE INICIALIZACIÓN"] -->|VerificadorTipos.Verificar: AddRange| LISTA
-    LISTA --> UI["Form1.EjecutarVerificacionTipos<br/>erroresTipos.AddRange"]
-    UI --> GRID["Form1.LlenarDgvErroresSintaxis<br/>dgvErroresSintaxis"]
-```
+### Pruebas realizadas y alcance
 
-Cuando el léxico o LL(1) informa un error, este flujo semántico no comienza; sus errores se muestran en los controles correspondientes. La [matriz de cobertura 1.6/1.7](cobertura-errores-1.6-1.7.md) señala los límites de lo que puede conocerse sin ejecutar el programa.
+La batería registrada del proyecto contiene **317 pruebas correctas y 0 fallidas**. Incluye ejemplos válidos y casos de errores de sintaxis, tipos, ámbitos, inicialización, retorno garantizado, funciones, memoria simbólica, `LEER` y generación de cuádruplos, triplos y Código P, con presentación de tres direcciones y notaciones infija, prefija y postfija. También se verificó la compilación de la aplicación de escritorio.
 
-### Comprobación reproducible
+Estas pruebas comprueban las clases de análisis; no automatizan la presentación visual ni la clasificación léxica conectada a la base de datos. Un resultado correcto en ellas respalda los casos comprobados, no garantiza detectar cualquier error imaginable.
 
-La batería documentada en [Pruebas de los analizadores](pruebas-analizadores.md) obtuvo **200 casos correctos, 0 fallidos** con el SDK .NET **10.0.401**. Incluye sintaxis y recuperación, incompatibilidades de tipos, alcance, límites de `ENT`, disposición de memoria simbólica, inicialización y firmas de funciones. El proyecto principal de Windows Forms compiló para **.NET Framework 4.7.2, Debug/x64**.
-
-Las pruebas de consola enlazan las clases reales de análisis, pero clasifican los lexemas de sus ejemplos con un *fixture*: no ejecutan el AFD conectado a SQLite ni comprueban visualmente los `DataGridView`. Las tablas de símbolos y funciones de la aplicación muestran los atributos calculados al analizar programas con el léxico configurado.
+La versión actual no ejecuta programas ni detecta fugas reales de memoria. Tampoco comprueba todavía el rango de los decimales ni los desbordamientos del resultado de operaciones. Sí comprueba retorno garantizado por caminos con un análisis conservador, sin evaluar constantes ni demostrar terminación de ciclos. Los alcances de cada comprobación están registrados en la [cobertura de los temas 1.6 y 1.7](pruebas-analizadores.md#cobertura-de-los-temas-16-y-17).
 
 ## Conclusiones
 
 ## Bibliografía
 
-### Documentos de la asignatura
+### Materiales de la asignatura disponibles en el proyecto
 
-1. *Pila semántica en un analizador sintáctico* (s. f.). [Archivo «1.4_PILA_SEMANTICA (1).pdf»](1.4_PILA_SEMANTICA%20%281%29.pdf), proporcionado para la asignatura.
-2. *Esquema de traducción* (s. f.). [Archivo «1.5 Esquema de Traduccion.pdf»](1.5%20Esquema%20de%20Traduccion.pdf), proporcionado para la asignatura.
-3. *Generación de la tabla de símbolos y de direcciones; manejo de errores semánticos*, temas 1.6 y 1.7 (s. f.). [Archivo «LyA2_1.6&1.7_Documento.pdf»](LyA2_1.6%261.7_Documento.pdf), proporcionado para la asignatura.
+1. *Pila semántica en un analizador sintáctico*. (s. f.). Material del tema 1.4. [1.4_PILA_SEMANTICA (1).pdf](1.4_PILA_SEMANTICA%20%281%29.pdf).
+2. *Esquema de traducción*. (s. f.). Material del tema 1.5. [1.5 Esquema de Traduccion.pdf](1.5%20Esquema%20de%20Traduccion.pdf).
+3. *Generación de la tabla de símbolos y de direcciones; manejo de errores semánticos*. (s. f.). Material de los temas 1.6 y 1.7. [LyA2_1.6&1.7_Documento.pdf](LyA2_1.6%261.7_Documento.pdf).
 
-### Documentación técnica del proyecto
+### Documentación de apoyo
 
-4. *Análisis semántico: jerarquía de operaciones, tipos y pilas*. [Documentación interna](analisis-semantico.md).
-5. *Ámbitos y declaraciones: integración actual*. [Documentación interna](ambitos-y-declaraciones.md).
-6. *Memoria simbólica: regiones y desplazamientos*. [Documentación interna](memoria-simbolica.md).
-7. *Cobertura de errores de los temas 1.6 y 1.7*. [Documentación interna](cobertura-errores-1.6-1.7.md).
-8. *Pruebas de diagnósticos sintácticos y semánticos*. [Documentación interna](pruebas-analizadores.md).
+4. [Cobertura de errores de los temas 1.6 y 1.7](pruebas-analizadores.md#cobertura-de-los-temas-16-y-17). Documentación del proyecto.
+5. [Pruebas de diagnósticos sintácticos y semánticos](pruebas-analizadores.md). Documentación del proyecto.
+6. [Presentación técnica del analizador](presentacion-analizador-sharpc-tecnica.md). Consulta de clases, métodos y diagramas detallados.
+7. [Guía breve de escritura](reglas-lexicas.md) y [ejemplos para probar](ejemplos-prueba.md). Material para quienes usarán el analizador.
 
 ## Glosario
 
-| Término | Significado en este proyecto |
+| Palabra | Explicación sencilla |
 | --- | --- |
-| **Análisis léxico** | Separación y clasificación de lexemas en categorías de tokens. |
-| **AFD** | Autómata finito determinista: sus transiciones permiten clasificar un lexema; la matriz de este proyecto se carga desde SQLite. |
-| **Lexema** | Fragmento concreto de texto leído del programa, por ejemplo `vEdad` o `12`. |
-| **Token** | Categoría asignada a un lexema, por ejemplo `IDV` para una variable o `CNU` para un número. |
-| **Análisis sintáctico** | Comprobación de que la secuencia de tokens sigue la gramática del lenguaje. |
-| **LL(1)** | Método predictivo que analiza de izquierda a derecha y decide una producción consultando un token de anticipación y una tabla. |
-| **Árbol de expresión** | Representación conceptual de cómo se agrupan operadores y operandos según precedencia y paréntesis. El analizador actual **no construye** ese árbol como objeto. |
-| **Análisis semántico** | Comprobación del significado estático: tipos, declaraciones visibles, inicialización, llamadas y retornos. |
-| **Pila semántica** | En este proyecto, `pilaTipos`: almacena tipos de operandos y resultados parciales durante la inferencia. `pilaOps` guarda los operadores pendientes. |
-| **Ámbito** | Región léxica de visibilidad de una declaración. `INI` es el ámbito principal; bloques y funciones crean ámbitos hijos. |
-| **Tabla de símbolos** | Registro de declaraciones con nombre, tipo, clase, ámbito, línea y, cuando corresponde, región y desplazamiento. |
-| **Resolución de nombres** | Proceso que vincula un uso de identificador con la declaración visible correcta. |
-| **Tipo de dato** | Clasificación de un valor del lenguaje, por ejemplo `ENT`, `DEC`, `BOOL`, `CAR`, `TXT` o `VAC` como retorno sin valor. |
-| **Promoción de tipos** | Compatibilidad que permite utilizar un `ENT` donde se espera un `DEC`. |
-| **Inicialización definida** | Propiedad de una variable que recibió una asignación antes de ser leída en todos los caminos considerados. |
-| **Firma de función** | Nombre, tipo de retorno y tipos de los parámetros utilizados para comprobar una llamada. |
-| **Región de memoria** | Área *simbólica* independiente para `INI` o para el marco de una función; no es una dirección física. |
-| **Desplazamiento u offset** | Posición relativa en bytes de una variable dentro de su región. |
-| **Error semántico** | Uso válido en su forma sintáctica que infringe una regla de significado, como asignar texto a `ENT` o leer una variable sin inicializar. |
+| **Analizador** | Programa que revisa otro programa y obtiene información sobre él. |
+| **Análisis léxico** | Reconocimiento de las palabras, números y símbolos que aparecen en el código. |
+| **Lexema** | Texto concreto reconocido, como `vEdad` o `18`. |
+| **Token** | Categoría de un elemento reconocido, como identificador, número u operador. |
+| **Análisis sintáctico** | Revisión del orden y la estructura de las instrucciones. |
+| **Gramática** | Conjunto de reglas que indica cómo se pueden escribir las instrucciones de un lenguaje. |
+| **Semántico** | Relativo al significado. En programación, se refiere a las reglas de uso de nombres, datos y operaciones. |
+| **Expresión** | Combinación de valores, variables y operadores, como `vPrecio * 2`. |
+| **Árbol de expresión** | Representación de cómo se agrupan los operadores y sus operandos. |
+| **Precedencia** | Prioridad de un operador respecto a otros; por ejemplo, multiplicar antes de sumar. |
+| **Acción semántica** | Tarea que comprueba o registra el significado de una construcción del lenguaje. |
+| **Tipo de dato** | Categoría de la información, como entero, decimal o texto. |
+| **Pila semántica** | Estructura temporal que guarda información mientras se revisan expresiones; en nuestro proyecto guarda tipos. |
+| **Esquema de traducción** | Asociación entre reglas de la gramática y acciones que producen información o una traducción. |
+| **Símbolo** | Elemento declarado del programa, como una variable, una función o un parámetro. |
+| **Tabla de símbolos** | Registro de los elementos declarados y sus características. |
+| **Ámbito** | Parte del programa en la que se puede utilizar un nombre. |
+| **Inicialización** | Primera asignación de un valor a una variable. |
+| **Parámetro** | Dato que una función declara que necesita recibir, como `vImporte`. |
+| **Argumento** | Expresión que se proporciona al llamar una función, como `vSubtotal`. |
+| **Retorno** | Valor que una función devuelve; en nuestro lenguaje se indica mediante `REGR`. |
+| **Región de memoria** | Espacio simbólico que agrupa las posiciones de las variables del principal o de una función. |
+| **Marco de función** | Región que reúne el espacio de los parámetros y las variables locales de una función. |
+| **Byte** | Unidad de información usada para expresar los tamaños del modelo de memoria. |
+| **Desplazamiento** | Cantidad de bytes desde el inicio de una región hasta una variable. |
+| **Análisis estático** | Revisión del código sin ejecutar sus instrucciones. |

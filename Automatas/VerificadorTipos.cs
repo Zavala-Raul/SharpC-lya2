@@ -8,12 +8,11 @@ namespace Automatas
     {
         private readonly Dictionary<string, Simbolo> tablaSimbolos;
         private readonly Dictionary<string, Funcion> tablaFunciones;
-        // Cada fragmento conserva su desplazamiento en la lista fuente. Comparar
-        // tuplas por valor no sirve: dos usos homónimos pueden estar en una línea.
         private readonly Dictionary<List<(string Tipo, string Valor, int Linea)>, int> inicios =
             new Dictionary<List<(string, string, int)>, int>();
         private int posicionActual;
         public TablaAmbitos TablaAmbitos { get; private set; }
+        internal List<(string Tipo, string Valor, int Linea)> TokensVerificados { get; private set; }
         private Simbolo SimboloActual => TablaAmbitos != null && posicionActual >= 0 &&
             posicionActual < TablaAmbitos.SimbolosPorToken.Length
                 ? TablaAmbitos.SimbolosPorToken[posicionActual] : null;
@@ -31,14 +30,13 @@ namespace Automatas
 
         public void Verificar(List<(string Tipo, string Valor, int Linea)> tokens)
         {
+            TokensVerificados = tokens;
             Errores.Clear();
             inicios.Clear();
             inicios[tokens] = 0;
             TablaAmbitos = new TablaAmbitos(tokens, tablaFunciones.Values);
             Errores.AddRange(TablaAmbitos.Errores);
 
-            // También revisa literales en impresión, retornos y argumentos que este
-            // recorrido todavía no verifica por completo. No evalúa las operaciones.
             foreach (var token in tokens)
             {
                 if (token.Tipo == "CNU")
@@ -129,6 +127,29 @@ namespace Automatas
                             TablaAmbitos.AmbitosPorToken[posicionRetorno]));
                     continue;
                 }
+                if (tk.Tipo == "PR29")
+                {
+                    Simbolo primero = TablaAmbitos.SimbolosPorToken[i + 4];
+                    Simbolo segundo = TablaAmbitos.SimbolosPorToken[i + 6];
+                    string tipoDeclarado = tokens[i + 2].Valor;
+                    if (primero != null && segundo != null &&
+                        (primero.Tipo != tipoDeclarado || segundo.Tipo != tipoDeclarado))
+                        Errores.Add((tk.Linea, "ERROR DE TIPO: INTER requiere dos variables del tipo '" +
+                            tipoDeclarado + "', pero recibió '" + primero.Tipo + "' y '" + segundo.Tipo + "'."));
+                }
+                if (tk.Tipo == "PR7" || tk.Tipo == "PR8")
+                {
+                    string color = tokens[i + 2].Valor;
+                    color = color.Substring(1, color.Length - 2);
+                    if (color.Length == 0 || !color.All(Uri.IsHexDigit))
+                        Errores.Add((tk.Linea, "ERROR DE TIPO: " + tk.Valor + " requiere un color hexadecimal."));
+                }
+                if (tk.Tipo == "PR9" || tk.Tipo == "PR31")
+                {
+                    var cantidad = tokens[i + (tk.Tipo == "PR9" ? 2 : 4)];
+                    if (CatalogoTipos.EsLiteralDecimal(cantidad.Valor))
+                        Errores.Add((cantidad.Linea, "ERROR DE TIPO: La cantidad de " + tk.Valor + " debe ser ENT."));
+                }
                 // Las declaraciones de funciones no son llamadas.
                 if (tk.Tipo == "IDF" && (i < 2 || tokens[i - 2].Tipo != "PR2"))
                 {
@@ -139,6 +160,7 @@ namespace Automatas
                 i++;
             }
             Errores.AddRange(new AnalizadorInicializacion(tokens, TablaAmbitos).Errores);
+            Errores.AddRange(new AnalizadorRetornos(tokens, TablaAmbitos).Errores);
         }
 
         private void VerificarBuclePor(List<(string Tipo, string Valor, int Linea)> tokensPor, int linea)
@@ -350,14 +372,12 @@ namespace Automatas
                 {
                     pilaOps.Push("!");
                 }
-                else if (EsOperador(tk.Tipo, tk.Valor))
+                else if (OperadoresExpresion.EsOperador(tk.Tipo, tk.Valor))
                 {
-                    string op = NormalizarOperador(tk.Tipo, tk.Valor);
+                    string op = OperadoresExpresion.Normalizar(tk.Tipo, tk.Valor);
                     // La potencia es asociativa a la derecha: a ^ b ^ c = a ^ (b ^ c).
                     // A igual precedencia, los demás operadores se aplican de izquierda a derecha.
-                    while (pilaOps.Count > 0 && pilaOps.Peek() != "(" &&
-                           (ObtenerPrecedencia(pilaOps.Peek()) > ObtenerPrecedencia(op) ||
-                            (ObtenerPrecedencia(pilaOps.Peek()) == ObtenerPrecedencia(op) && op != "^")))
+                    while (pilaOps.Count > 0 && OperadoresExpresion.DebeReducir(pilaOps.Peek(), op))
                     {
                         AplicarOperador(pilaTipos, pilaOps, linea);
                     }
@@ -536,59 +556,6 @@ namespace Automatas
         private bool EsNumerico(string tipo)
         {
             return tipo == "ENT" || tipo == "DEC";
-        }
-
-        private bool EsOperador(string tipoToken, string valor)
-        {
-            return tipoToken.StartsWith("OPA") || tipoToken.StartsWith("OPR") || tipoToken.StartsWith("OPL") ||
-                   valor == "+" || valor == "-" || valor == "*" || valor == "/" || valor == "^" ||
-                   valor == "==" || valor == "<>" || valor == "<" || valor == ">" || valor == "<=" || valor == ">=" ||
-                   valor == "&&" || valor == "||";
-        }
-
-        private string NormalizarOperador(string tipoToken, string valor)
-        {
-            switch (tipoToken)
-            {
-                case "OPA+": return "+";
-                case "OPA-": return "-";
-                case "OPA*": return "*";
-                case "OPA/": return "/";
-                case "OPA^": return "^";
-                case "OPR1": return "==";
-                case "OPR2": return "<>";
-                case "OPR3": return "<";
-                case "OPR4": return ">";
-                case "OPR5": return "<=";
-                case "OPR6": return ">=";
-                case "OPL1": return "&&";
-                case "OPL2": return "||";
-                case "OPL3": return "!";
-                default: return valor;
-            }
-        }
-
-        private int ObtenerPrecedencia(string op)
-        {
-            switch (op)
-            {
-                case "^": return 6;
-                case "*":
-                case "/": return 5;
-                case "+":
-                case "-": return 4;
-                case "==":
-                case "<>":
-                case "<":
-                case ">":
-                case "<=":
-                case ">=": return 3;
-                // COND_NOT -> ! COND_NOT: la comparación se completa antes de negarla.
-                case "!": return 2;
-                case "&&": return 1;
-                case "||": return 0;
-                default: return -1;
-            }
         }
 
         private List<(string Tipo, string Valor, int Linea)> ExtraerTokensHastaPuntoComa(

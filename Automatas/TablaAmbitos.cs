@@ -187,8 +187,6 @@ namespace Automatas
             return simbolo;
         }
 
-        // Registrar padres antes que hijos hace la prohibición de sombreado
-        // independiente del orden textual (incluidas funciones adelantadas).
         private void RegistrarDeclaraciones(Ambito ambito)
         {
             if (pendientes.TryGetValue(ambito, out List<Simbolo> lista))
@@ -256,8 +254,6 @@ namespace Automatas
                 funcion.Region = region;
             }
 
-            // Todos los bloques interiores comparten la región de su función más
-            // cercana. Si no la hay, pertenecen a INI. No se reutilizan huecos.
             foreach (Simbolo simbolo in Simbolos)
             {
                 if (simbolo.Clase != "VARIABLE" && simbolo.Clase != "PARAMETRO") continue;
@@ -265,8 +261,6 @@ namespace Automatas
                 RegionMemoria region = null;
                 for (Ambito ambito = simbolo.Ambito; ambito != null; ambito = ambito.Padre)
                     if (regionesPorAmbito.TryGetValue(ambito, out region)) break;
-                // Un cuerpo de función duplicada no se incorpora al marco de su padre.
-                // Su declaración no puede ejecutarse ni tiene ubicación válida.
                 if (region == null) continue;
 
                 int tamano;

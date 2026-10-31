@@ -182,6 +182,13 @@ namespace Automatas
                     Asignar(i, puntoComa, estado);
                     i = puntoComa + 1;
                 }
+                else if (tipo == "PR4")
+                {
+                    // LEER(vA); escribe en vA. No se lee el valor anterior.
+                    Simbolo destino = tabla.SimbolosPorToken[i + 2];
+                    if (destino != null) estado.Add(destino);
+                    i = HastaPuntoComa(i + 1, fin) + 1;
+                }
                 else if (tipo == "PR3" || tipo == "PR5" || tipo == "IDF")
                 {
                     int puntoComa = HastaPuntoComa(i + 1, fin);

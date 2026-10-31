@@ -43,6 +43,10 @@ internal static partial class Program
 
         var ambitos = CrearCasosAmbito();
         ambitos.AddRange(CrearCasosMemoriaDirectos());
+        ambitos.AddRange(CrearCasosCodigoIntermedio());
+        ambitos.AddRange(CrearCasosGeneracionCompleta());
+        ambitos.AddRange(CrearCasosRetornoGarantizado());
+        ambitos.AddRange(CrearCasosRepresentaciones());
         foreach (var (nombre, accion) in ambitos)
         {
             try
@@ -75,8 +79,8 @@ internal static partial class Program
             Valido("V05 Prioridad de multiplicación sobre concatenación", "TXT vA = \"total\" + 2 * 3;"),
             Valido("V06 Paréntesis y potencias encadenadas", "DEC vA = (2 + 3) * 4.5 ^ 2 ^ 3;"),
             Valido("V07 Condición numérica y negación agrupada", "ENT vA = 3; SI (!(vA < 2)) { vA = vA + 1; }"),
-            Valido("V08 Operadores lógicos", "SI ((2 < 3) & VDD | FLS) { }"),
-            Valido("V09 MIENT y HASTA booleanos", "MIENT (VDD) { } REPT { } HASTA (FLS);"),
+            Valido("V08 Operadores lógicos", "SI ((2 < 3) & VDD | FALS) { }"),
+            Valido("V09 MIENT y HASTA booleanos", "MIENT (VDD) { } REPT { } HASTA (FALS);"),
             Valido("V10 POR con declaración", "POR (ENT vI = 0; vI < 3; vI = vI + 1) { }"),
             Valido("V11 POR con variable ya declarada", "ENT vI; POR (vI = 0; vI < 3; vI = vI + 1) { }"),
 
@@ -117,7 +121,7 @@ internal static partial class Program
                 "No se pueden comparar tipos incompatibles 'TXT' y 'ENT' con '<'."),
             Semantica("M11 AND requiere booleanos", "SI (2 & VDD) { }", 2,
                 "El operador lógico '&&' requiere operandos 'BOOL', pero recibió 'ENT' y 'BOOL'."),
-            Semantica("M12 OR requiere booleanos", "SI (FLS | 2) { }", 2,
+            Semantica("M12 OR requiere booleanos", "SI (FALS | 2) { }", 2,
                 "El operador lógico '||' requiere operandos 'BOOL', pero recibió 'BOOL' y 'ENT'."),
             Semantica("M13 NOT requiere booleano", "SI (!2) { }", 2,
                 "El operador lógico '!' requiere un operando 'BOOL', pero recibió 'ENT'."),
@@ -152,7 +156,7 @@ internal static partial class Program
             Semantica("R07 POR incremento multilínea", "POR (ENT vI = 0;\nvI < 3;\nvI = \"hola\") { }", 4,
                 "No se puede asignar una expresión de tipo 'TXT' a la variable 'vI' de tipo 'ENT'."),
             Valido("R08 POR promoción sin declaración", "DEC vI; POR (vI = 0; vI < 3; vI = vI + 0.5) { }"),
-            Valido("R09 Negaciones sucesivas y operadores lógicos", "SI (!2 + 3 < 6 & !!VDD | !FLS) { }"),
+            Valido("R09 Negaciones sucesivas y operadores lógicos", "SI (!2 + 3 < 6 & !!VDD | !FALS) { }"),
             Valido("R10 Negación explícita de comparación", "SI (!(2 < 3)) { }"),
             Semantica("R11 Negación de aritmética no booleana", "SI (!2 + 3) { }", 2,
                 "El operador lógico '!' requiere un operando 'BOOL', pero recibió 'ENT'."),
@@ -211,6 +215,7 @@ internal static partial class Program
         casos.AddRange(CrearCasosIntegracionAmbitos());
         casos.AddRange(CrearCasosMemoria());
         casos.AddRange(CrearCasosErroresDocumentos());
+        casos.AddRange(CrearCasosLectura());
         return casos;
     }
 
@@ -484,15 +489,18 @@ internal static partial class Program
         { "INI", "PR1" }, { "FUNC", "PR2" }, { "REGR", "PR3" }, { "IMP", "PR5" },
         { "SI", "PR11" }, { "MIENT", "PR15" },
         { "SINO", "PR12" }, { "ENCASO", "PR13" }, { "DFCT", "PR14" },
-        { "ROMPER", "PR19" }, { "VAC", "PR28" }, { "LEE", "PR4" }, { ":", "CE20" },
+        { "ROMPER", "PR19" }, { "VAC", "PR28" }, { "LEER", "PR4" }, { ":", "CE20" },
+        { "LIMP", "PR6" }, { "FONCOL", "PR7" }, { "TXTCOL", "PR8" }, { "SLTLN", "PR9" },
+        { "POS", "PR10" }, { "INTER", "PR29" }, { "TECL", "PR30" }, { "IMPREP", "PR31" },
+        { "NUL", "PR22" }, { "FALS", "PR21" },
         { "REPT", "PR16" }, { "HASTA", "PR17" }, { "POR", "PR18" },
-        { "VDD", "PR20" }, { "FLS", "PR21" }, { "ENT", "PR23" },
+        { "VDD", "PR20" }, { "ENT", "PR23" },
         { "DEC", "PR24" }, { "TXT", "PR25" }, { "BOOL", "PR26" }, { "CAR", "PR27" },
         { "(", "CE1" }, { ")", "CE2" }, { "{", "CE3" }, { "}", "CE4" },
         { ",", "CE7" }, { ";", "CE8" }, { "=", "ASIG" },
         { "+", "OPA+" }, { "-", "OPA-" }, { "*", "OPA*" }, { "/", "OPA/" }, { "^", "OPA^" },
-        { "==", "OPR1" }, { "<>", "OPR2" }, { "<", "OPR3" }, { ">", "OPR4" },
-        { "<=", "OPR5" }, { ">=", "OPR6" }, { "&", "OPL1" }, { "|", "OPL2" }, { "!", "OPL3" }
+        { ">", "OPR1" }, { "<", "OPR2" }, { ">=", "OPR3" }, { "<=", "OPR4" },
+        { "<>", "OPR5" }, { "==", "OPR6" }, { "&", "OPL1" }, { "|", "OPL2" }, { "!", "OPL3" }
     };
 
     private static List<(string Tipo, string Valor, int Linea)> PrepararTokens(string fuente)

@@ -22,7 +22,7 @@ internal static partial class Program
             SinInicializar("E02 Autoasignación lee antes de escribir", "ENT vA; vA = vA + 1;", "vA"),
             SinInicializar("E03 SI sin SINO no garantiza asignación", "ENT vA; SI(VDD) { vA = 1; } IMP(vA);", "vA"),
             Valido("E04 SI y SINO inicializan ambas ramas", "ENT vA; SI(VDD) { vA = 1; } SINO { vA = 2; } IMP(vA);"),
-            SinInicializar("E05 MIENT puede no ejecutarse", "ENT vA; MIENT(FLS) { vA = 1; } IMP(vA);", "vA"),
+            SinInicializar("E05 MIENT puede no ejecutarse", "ENT vA; MIENT(FALS) { vA = 1; } IMP(vA);", "vA"),
             Valido("E06 REPT garantiza una iteración", "ENT vA; REPT { vA = 1; } HASTA (vA > 0); IMP(vA);"),
             SinInicializar("E07 POR lee su inicializador", "ENT vA; POR (ENT vI = vA; vI < 3; vI = vI + 1) { }", "vA"),
             Valido("E08 POR inicia la variable exterior antes de salir", "ENT vA; POR (vA = 0; vA < 2; vA = vA + 1) { } IMP(vA);"),

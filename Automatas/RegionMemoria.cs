@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Automatas
 {
-    // Direcciones relativas del lenguaje; no reserva memoria del proceso.
+    // Direcciones relativas. No guarda memoria de verdad
     public sealed class RegionMemoria
     {
         private readonly List<Simbolo> simbolos = new List<Simbolo>();
@@ -18,8 +18,6 @@ namespace Automatas
         public int TamanoBytes { get; private set; }
         public IReadOnlyList<Simbolo> Simbolos => simbolos.AsReadOnly();
 
-        // checked impide que el desplazamiento se envuelva si el marco supera Int32.MaxValue.
-        // Se valida antes de modificar la región y el símbolo para que un error no consuma espacio.
         public void Reservar(Simbolo simbolo, int tamanoBytes)
         {
             if (simbolo == null) throw new ArgumentNullException(nameof(simbolo));

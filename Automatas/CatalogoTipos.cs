@@ -16,7 +16,7 @@ namespace Automatas
                 case "DEC": return 8;
                 case "BOOL": return 1;
                 case "CAR": return 2;
-                case "TXT": return 8; // Referencia simbólica; excluye el contenido de la cadena.
+                case "TXT": return 8; // Es el máximo de este sistema, para facilitarnos la vida
                 case "VAC": return 0;
                 default: throw new ArgumentException("Tipo sin tamaño definido: " + tipo, nameof(tipo));
             }

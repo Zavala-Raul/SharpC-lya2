@@ -92,9 +92,19 @@
     <Compile Include="TablaAmbitos.cs" />
     <Compile Include="RegionMemoria.cs" />
     <Compile Include="AnalizadorInicializacion.cs" />
+    <Compile Include="AnalizadorRetornos.cs" />
     <Compile Include="AnalizadorLexico.cs" />
     <Compile Include="AnalizadorSintacticoLl1.cs" />
     <Compile Include="CatalogoTipos.cs" />
+    <Compile Include="OperadoresExpresion.cs" />
+    <Compile Include="Cuadruplo.cs" />
+    <Compile Include="ExpresionIntermedia.cs" />
+    <Compile Include="RepresentacionesIntermedias.cs" />
+    <Compile Include="GeneradorTriplos.cs" />
+    <Compile Include="GeneradorCodigoP.cs" />
+    <Compile Include="FormateadorNotaciones.cs" />
+    <Compile Include="FormateadorCodigoIntermedio.cs" />
+    <Compile Include="GeneradorCodigoIntermedio.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
