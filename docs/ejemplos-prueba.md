@@ -1,6 +1,6 @@
 # Programas para probar SharpC manualmente
 
-**Copia un bloque completo por vez** en «Programa Fuente» y pulsa **Ejecutar**. Los ejemplos no dependen entre sí. Las instrucciones `IMP` y `LEER` se **analizan**, pero esta aplicación todavía no ejecuta la impresión ni solicita datos por teclado. Consulta también la [guía de escritura](reglas-lexicas.md).
+**Copia un bloque completo por vez** en «Programa Fuente» y pulsa **Ejecutar**. Los ejemplos no dependen entre sí. Las instrucciones `IMP` y `LEER` se representan en código intermedio, pero esta aplicación todavía no ejecuta la impresión ni solicita datos por teclado. Consulta el [contrato de generación](plan-codigo-intermedio.md).
 
 ## Cuádruplos: prueba de la nueva pestaña
 

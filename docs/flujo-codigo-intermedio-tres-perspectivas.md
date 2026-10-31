@@ -824,9 +824,6 @@ Detalles que el siguiente responsable debe conocer:
 - [Contrato de código intermedio](plan-codigo-intermedio.md): campos, operaciones, tipos, funciones y semántica de las representaciones.
 - [Pruebas y cobertura](pruebas-analizadores.md): resultados y límites de la verificación.
 - [Programas manuales](ejemplos-prueba.md): entradas para el formulario.
-- [Reglas de escritura](reglas-lexicas.md): palabras reservadas y distinción de errores.
-- [Presentación técnica](presentacion-analizador-sharpc-tecnica.md): detalles del análisis anterior a la síntesis.
 - [Material de representaciones de clase](s_ntesis_de_c_digo_intermedio_y_representaciones.md): variante de triplos, Código P y notaciones.
-- [ACT 1](ACT%201.%20definicion%20y%20caracteristicas%20%20ene-jun%202026-7.docx) y [ACT 3](ACT%203.%20DEFINICIONES%20REGULARES,%20COMPLEMENTO%20DE%20LA%20ACT%202%20ene-jun%202026.docx): referencias de significado, sintaxis y categorías del lenguaje.
 
 > Resumen de mantenimiento: valida una vez, conserva símbolos y expresiones originales, baja a un IR común, traduce sin cambiar los efectos y publica las vistas únicamente cuando estén preparadas.

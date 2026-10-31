@@ -15,7 +15,7 @@ La generación cubre las instrucciones de la gramática actual de SharpC. La pes
 
 La matriz SQLite y la gramática conservan sus reglas: añadir un generador no habilita nuevas formas de escribir el lenguaje. Una expresión lógica válida como condición no pasa automáticamente a ser una expresión válida en cualquier asignación. Las palabras nativas oficiales son `VDD`, `FALS` y `NUL`. ACT 1 describe NUL como ausencia de valor; su política de compatibilidad con los tipos no se especifica completamente y el verificador aún lo agrupa con BOOL. Esa discrepancia semántica sigue pendiente: reconocer el nombre correcto no equivale a implementar nulabilidad.
 
-Las referencias del lenguaje son [ACT 1](ACT%201.%20definicion%20y%20caracteristicas%20%20ene-jun%202026-7.docx) (significado/sintaxis) y [ACT 3](ACT%203.%20DEFINICIONES%20REGULARES,%20COMPLEMENTO%20DE%20LA%20ACT%202%20ene-jun%202026.docx) (categorías y lexemas). Se corrigieron los nombres que el código atribuía erróneamente a PR6–PR10 y PR29–PR31. No existe una instrucción de arreglos en estos documentos: PR29 es intercambio.
+La correspondencia de palabras reservadas se contrastó con ACT 1 (significado/sintaxis) y ACT 3 (categorías y lexemas). Esos materiales de definición del lenguaje ya no se incluyen en esta carpeta centrada en código intermedio. Se corrigieron los nombres que el código atribuía erróneamente a PR6–PR10 y PR29–PR31; la tabla de instrucciones de este contrato conserva la correspondencia relevante para generación. PR29 es INTER: intercambio, no arreglos.
 
 ## Relación con el material de clase
 
